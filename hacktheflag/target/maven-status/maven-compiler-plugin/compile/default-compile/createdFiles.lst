@@ -1,0 +1,5 @@
+com\bytecrash\filesystem\FileSystem.class
+com\bytecrash\terminal\TerminalSimulator.class
+com\bytecrash\filesystem\File.class
+com\bytecrash\App.class
+com\bytecrash\filesystem\Directory.class
