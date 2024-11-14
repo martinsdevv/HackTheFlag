@@ -11,6 +11,7 @@ public class FileSystem {
     private Directory currentDirectory;
     private final String rootPath = "filesystem"; // Diretório raiz do sistema de arquivos
     private final FileContentProvider contentProvider;
+    private final CTFManager ctfManager;
 
     public FileSystem() {
         // Limpa o diretório `filesystem` antes de inicializar o sistema de arquivos
@@ -19,12 +20,16 @@ public class FileSystem {
         root = new Directory("root");
         currentDirectory = root;
         contentProvider = new FileContentProvider();
+        ctfManager = new CTFManager(this);
 
         // Criação do diretório de armazenamento físico para o sistema de arquivos
         createRootDirectory();
 
         // Criação de uma estrutura de arquivos padrão
         setupBasicFileSystem();
+
+        // Distribuição de bandeiras aleatórias nos diretórios
+        ctfManager.distributeFlags();
     }
 
     private void createRootDirectory() {
@@ -62,28 +67,28 @@ public class FileSystem {
         Directory home = new Directory("home", root);
         Directory etc = new Directory("etc", root);
         Directory usr = new Directory("usr", root);
-
+    
         root.addDirectory(home);
         root.addDirectory(etc);
         root.addDirectory(usr);
-
+    
         Directory userDir = new Directory("user", home);
         home.addDirectory(userDir);
-
+    
         // Criação da estrutura física dos diretórios
         createPhysicalDirectory(rootPath, home);
         createPhysicalDirectory(rootPath, etc);
         createPhysicalDirectory(rootPath, usr);
         createPhysicalDirectory(rootPath + "/home", userDir);
-
+    
         // Criação de arquivos padrão no sistema de arquivos virtual e físico
-        createFileInSystem(etc, "config.txt");
-        createFileInSystem(usr, "README.md");
-        createFileInSystem(userDir, "welcome.txt");
+        createFileInSystem(etc, "config.txt", contentProvider.getContent("config.txt"));
+        createFileInSystem(usr, "README.md", contentProvider.getContent("README.md"));
+        createFileInSystem(userDir, "welcome.txt", contentProvider.getContent("welcome.txt"));
     }
+    
 
     public void createPhysicalDirectory(String parentPath, Directory directory) {
-        // Constrói o caminho absoluto usando o rootPath
         Path dirPath = Paths.get(rootPath, parentPath, directory.getName());
         try {
             if (Files.notExists(dirPath)) {
@@ -96,18 +101,13 @@ public class FileSystem {
         }
     }
 
-    private void createFileInSystem(Directory directory, String fileName) {
+    public void createFileInSystem(Directory directory, String fileName, String content) {
         Path filePath = Paths.get(rootPath, getFullPath(directory), fileName);
         try {
             if (Files.notExists(filePath)) {
                 Files.createDirectories(filePath.getParent());
                 Files.createFile(filePath);
-                
-                // Obtém o conteúdo do arquivo a partir do FileContentProvider
-                String content = contentProvider.getContent(fileName);
                 Files.writeString(filePath, content);
-
-                // Adiciona o arquivo ao sistema de arquivos virtual
                 directory.addFile(new com.bytecrash.filesystem.File(fileName, content));
                 System.out.println("Arquivo '" + fileName + "' criado em " + filePath);
             } else {
