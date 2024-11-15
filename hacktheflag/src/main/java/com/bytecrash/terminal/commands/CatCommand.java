@@ -12,12 +12,12 @@ public class CatCommand implements Command {
     }
 
     @Override
-    public void execute(String argument) {
+    public String execute(String argument) {
         File file = fileSystem.findFile(argument);
         if (file != null) {
-            System.out.println(file.getContent());
+            return file.getContent();
         } else {
-            System.out.println("Arquivo não encontrado: " + argument);
+            return "Arquivo não encontrado: " + argument;
         }
     }
 

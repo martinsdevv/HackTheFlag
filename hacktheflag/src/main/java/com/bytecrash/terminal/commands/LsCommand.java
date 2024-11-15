@@ -13,15 +13,18 @@ public class LsCommand implements Command {
     }
 
     @Override
-    public void execute(String argument) {
+    public String execute(String argument) {
         Directory currentDir = fileSystem.getCurrentDirectory();
-        System.out.println("Conteúdo de " + currentDir.getName() + ":");
+        StringBuilder output = new StringBuilder("Conteúdo de " + currentDir.getName() + ":\n");
+
         for (Directory dir : currentDir.getDirectories()) {
-            System.out.println("dir  " + dir.getName());
+            output.append("dir  ").append(dir.getName()).append("\n");
         }
         for (File file : currentDir.getFiles()) {
-            System.out.println("file " + file.getName());
+            output.append("file ").append(file.getName()).append("\n");
         }
+
+        return output.toString();  // Retorna a saída como uma String
     }
 
     @Override

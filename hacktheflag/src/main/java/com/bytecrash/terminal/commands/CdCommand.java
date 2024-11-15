@@ -12,20 +12,22 @@ public class CdCommand implements Command {
     }
 
     @Override
-    public void execute(String argument) {
+    public String execute(String argument) {
         if (argument.equals("..")) {
             Directory parent = fileSystem.getCurrentDirectory().getParent();
             if (parent != null) {
                 fileSystem.setCurrentDirectory(parent);
+                return "Navegando para o diretório pai.";
             } else {
-                System.out.println("Você já está na raiz.");
+                return "Você já está na raiz.";
             }
         } else {
             Directory dir = fileSystem.findDirectory(argument);
             if (dir != null) {
                 fileSystem.setCurrentDirectory(dir);
+                return "Navegando para o diretório " + argument;
             } else {
-                System.out.println("Diretório não encontrado: " + argument);
+                return "Diretório não encontrado: " + argument;
             }
         }
     }

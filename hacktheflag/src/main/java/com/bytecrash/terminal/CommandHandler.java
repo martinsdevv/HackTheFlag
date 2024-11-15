@@ -28,18 +28,18 @@ public class CommandHandler {
         commands.put(command.getName(), command);  // Adiciona o comando ao mapa
     }
 
-    public void executeCommand(String commandLine) {
+    public String executeCommand(String commandLine) {
         String[] parts = commandLine.split(" ", 2);
         String commandName = parts[0];
         String argument = parts.length > 1 ? parts[1] : null;
-
+    
         Command command = commands.get(commandName);  // Busca o comando no mapa
         if (command != null) {
-            command.execute(argument);
+            return command.execute(argument);  // Assumindo que `execute` em cada comando retorna uma `String`
         } else {
-            System.out.println("Comando não reconhecido: " + commandName);
+            return "Comando não reconhecido: " + commandName;
         }
-    }
+    }    
 
     public String getCurrentDirectoryPath() {
         Directory current = fileSystem.getCurrentDirectory();

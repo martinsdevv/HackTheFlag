@@ -1,6 +1,6 @@
 package com.bytecrash.terminal;
 
 public interface Command {
-    void execute(String argument);
+    String execute(String argument);  // Alterado de void para String
     String getName();
 }

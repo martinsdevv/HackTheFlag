@@ -12,16 +12,15 @@ public class MkdirCommand implements Command {
     }
 
     @Override
-    public void execute(String argument) {
+    public String execute(String argument) {
         if (argument == null || argument.trim().isEmpty()) {
-            System.out.println("Uso: mkdir <nome_do_diretório>");
-            return;
+            return "Uso: mkdir <nome_do_diretório>";
         }
 
         Directory newDir = new Directory(argument, fileSystem.getCurrentDirectory());
         fileSystem.getCurrentDirectory().addDirectory(newDir);
         fileSystem.createPhysicalDirectory(fileSystem.getFullPath(fileSystem.getCurrentDirectory()), newDir);
-        System.out.println("Diretório '" + argument + "' criado com sucesso.");
+        return "Diretório '" + argument + "' criado com sucesso.";
     }
 
     @Override
