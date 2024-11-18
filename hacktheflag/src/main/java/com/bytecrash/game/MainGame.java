@@ -10,14 +10,17 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextArea;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.bytecrash.terminal.TerminalSimulator;
+import com.bytecrash.filesystem.FileSystem;
+import com.bytecrash.terminal.CommandHandler;
 
 public class MainGame extends ApplicationAdapter {
     private Stage stage;
     private Skin skin;
     private Texture backgroundTexture;
+    private TextArea terminal;
 
     @Override
     public void create() {
@@ -52,11 +55,23 @@ public class MainGame extends ApplicationAdapter {
         Table centerPanel = new Table();
         centerPanel.setBackground(skin.getDrawable("default-rect"));
         centerPanel.pad(10);
-        TextArea terminal = new TextArea("[martins@hacktheflag ~] $ ", skin);
-        terminal.setDisabled(true);
-        TextField commandInput = new TextField("", skin);
-        centerPanel.add(terminal).expand().fill().padBottom(10).row();
-        centerPanel.add(commandInput).expandX().fillX().height(40);
+
+        // Criar o terminal (entrada e saída em um único TextArea)
+        terminal = new TextArea("[martins@hacktheflag ~] $ ", skin);
+        terminal.setDisabled(true); // Apenas leitura para impedir edição direta
+
+        FileSystem fileSystem = new FileSystem();
+        CommandHandler commandHandler = new CommandHandler(fileSystem);
+        TerminalSimulator terminalSimulator = new TerminalSimulator(commandHandler);
+        terminalSimulator.setTerminalDisplay(terminal);
+        Gdx.input.setInputProcessor(terminalSimulator);
+
+
+        // Configurar o processador de entrada do terminal
+        Gdx.input.setInputProcessor(terminalSimulator);
+
+        // Adicionar o terminal ao painel central
+        centerPanel.add(terminal).expand().fill();
 
         // === Painel direito ===
         Table rightPanel = new Table();
