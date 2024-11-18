@@ -41,6 +41,15 @@
 
 
     <build>
+        <resources>
+            <resource>
+                <directory>${project.basedir}/hacktheflag/assets</directory> <!-- Confirme este caminho -->
+                <targetPath>assets</targetPath>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -52,5 +61,6 @@
             </plugin>
         </plugins>
     </build>
+
 
 </project>
