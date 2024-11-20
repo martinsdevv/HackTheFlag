@@ -20,7 +20,7 @@ public class TerminalSimulator implements InputProcessor {
         this.terminalDisplay.setText(terminalOutput.toString());
     }
 
-    private void appendToTerminal(String result) {
+    public void appendToTerminal(String result) {
         // Adiciona o resultado do comando sem sobrescrever o prompt
         terminalOutput.append(currentInput).append("\n").append(result).append("\n[martins@hacktheflag ~] $ ");
         currentInput = ""; // Limpa o comando atual

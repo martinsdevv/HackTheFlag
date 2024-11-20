@@ -66,6 +66,8 @@ public class MainGame extends ApplicationAdapter {
         terminalSimulator.setTerminalDisplay(terminal);
         Gdx.input.setInputProcessor(terminalSimulator);
 
+        terminalSimulator.appendToTerminal("Bem-vindo ao Hack the Flag! \n Use o comando 'hideflag <directory>' para esconder sua bandeira em um diretório. \n Você pode listar os diretórios disponíveis com 'ls'.");
+
 
         // Configurar o processador de entrada do terminal
         Gdx.input.setInputProcessor(terminalSimulator);

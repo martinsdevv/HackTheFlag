@@ -9,6 +9,8 @@ public class Directory {
     private List<File> files = new ArrayList<>();
     private List<Directory> directories = new ArrayList<>();
 
+    private boolean hasUserFlag = false;
+
     // Construtor atualizado para aceitar o diretório pai
     public Directory(String name, Directory parent) {
         this.name = name;
@@ -42,5 +44,13 @@ public class Directory {
 
     public void addDirectory(Directory directory) {
         directories.add(directory);
+    }
+
+    public boolean hasUserFlag() {
+        return hasUserFlag;
+    }
+    
+    public void setHasUserFlag(boolean hasUserFlag) {
+        this.hasUserFlag = hasUserFlag;
     }
 }
