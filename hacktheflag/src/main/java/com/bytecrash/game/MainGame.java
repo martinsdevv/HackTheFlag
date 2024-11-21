@@ -2,131 +2,134 @@ package com.bytecrash.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextArea;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.bytecrash.terminal.TerminalSimulator;
-import com.bytecrash.filesystem.FileSystem;
-import com.bytecrash.terminal.CommandHandler;
+import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class MainGame extends ApplicationAdapter {
-    private Stage stage;
-    private Skin skin;
     private Texture backgroundTexture;
-    private TextArea terminal;
+    private Texture terminalTexture;
+    private Texture hackButtonTexture;
+    private Texture menuButtonTexture;
+    private Texture logoutButtonTexture;
+    private SpriteBatch batch;
+    private Viewport viewport;
+    private Stage stage;
+
+    private static final int VIRTUAL_WIDTH = 1920;
+    private static final int VIRTUAL_HEIGHT = 1080;
+
+    // Coordenadas da área preta
+    private static final int BLACK_AREA_X = 260;
+    private static final int BLACK_AREA_Y = 5;
+    private static final int BLACK_AREA_WIDTH = 1658;
+    private static final int BLACK_AREA_HEIGHT = 1062;
 
     @Override
     public void create() {
-        // Configurar o stage e viewport
-        stage = new Stage(new ScreenViewport());
+        // Inicializa os recursos
+        batch = new SpriteBatch();
+        backgroundTexture = new Texture(Gdx.files.internal("assets/interface/prompt.png"));
+        terminalTexture = new Texture(Gdx.files.internal("assets/terminal.png"));
+        hackButtonTexture = new Texture(Gdx.files.internal("assets/interface/hack_cut.png"));
+        menuButtonTexture = new Texture(Gdx.files.internal("assets/interface/hack_cut.png"));
+        logoutButtonTexture = new Texture(Gdx.files.internal("assets/interface/hack_cut.png"));
+
+        // Configura o viewport
+        viewport = new FitViewport(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+        viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+
+        // Configura o Stage para os botões
+        stage = new Stage(viewport, batch);
         Gdx.input.setInputProcessor(stage);
 
-        // Configurar o fundo
-        backgroundTexture = new Texture(Gdx.files.internal("assets/background.png"));
-        Image background = new Image(backgroundTexture);
-        background.setFillParent(true);
-        stage.addActor(background);
+        // Criar botões
+        ImageButton hackButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(hackButtonTexture)));
+        ImageButton menuButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(menuButtonTexture)));
+        ImageButton logoutButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(logoutButtonTexture)));
 
-        // Configurar o skin
-        skin = new Skin(Gdx.files.internal("assets/uiskin.json"));
+        // Escala e tamanho dos botões
+        float scale = 4.5f; // Ajuste de escala (proporção dos botões)
+        float baseButtonWidth = 96f; // Largura base dos botões
+        float baseButtonHeight = 32f; // Altura base dos botões
+        float buttonWidth = baseButtonWidth * scale; // Largura escalada
+        float buttonHeight = baseButtonHeight * scale; // Altura escalada
 
-        // Criar o layout principal
-        Table mainTable = new Table();
-        mainTable.setFillParent(true); // Garante que o Table ocupe toda a tela
-        mainTable.pad(0); // Remove padding extra
-        stage.addActor(mainTable);
+        hackButton.setSize(buttonWidth, buttonHeight);
+        menuButton.setSize(buttonWidth, buttonHeight);
+        logoutButton.setSize(buttonWidth, buttonHeight);
 
-        // === Painel esquerdo ===
-        Table leftPanel = new Table();
-        leftPanel.setBackground(skin.getDrawable("default-round"));
-        leftPanel.pad(10);
-        leftPanel.add(new Label("10:00", skin)).padBottom(15).row();
-        leftPanel.add(new Label("Exploits", skin)).padBottom(10).row();
-        leftPanel.add(new Label("Defesas", skin));
+        // Posicionamento fixo na área lateral
+        float startX = BLACK_AREA_X / 2f - buttonWidth / 2f; // Centralizado na área preta lateral
+        float startY = BLACK_AREA_HEIGHT - 300f; // Posição inicial (abaixo de FLAGS)
+        float fixedSpacing = 20f; // Espaçamento fixo entre botões
 
-        // === Painel central ===
-        Table centerPanel = new Table();
-        centerPanel.setBackground(skin.getDrawable("default-rect"));
-        centerPanel.pad(10);
+        // Posicionar botões
+        hackButton.setPosition(startX, startY);
+        menuButton.setPosition(startX, startY - buttonHeight - fixedSpacing);
+        logoutButton.setPosition(startX, startY - 2 * (buttonHeight + fixedSpacing));
 
-        // Criar o terminal (entrada e saída em um único TextArea)
-        terminal = new TextArea("[martins@hacktheflag ~] $ ", skin);
-        terminal.setDisabled(true); // Apenas leitura para impedir edição direta
-
-        FileSystem fileSystem = new FileSystem();
-        CommandHandler commandHandler = new CommandHandler(fileSystem);
-        TerminalSimulator terminalSimulator = new TerminalSimulator(commandHandler);
-        terminalSimulator.setTerminalDisplay(terminal);
-        Gdx.input.setInputProcessor(terminalSimulator);
-
-        terminalSimulator.appendToTerminal("Bem-vindo ao Hack the Flag! \n Use o comando 'hideflag <directory>' para esconder sua bandeira em um diretório. \n Você pode listar os diretórios disponíveis com 'ls'.");
+        // Adicionar botões ao Stage
+        stage.addActor(hackButton);
+        stage.addActor(menuButton);
+        stage.addActor(logoutButton);
+    }
 
 
-        // Configurar o processador de entrada do terminal
-        Gdx.input.setInputProcessor(terminalSimulator);
-
-        // Adicionar o terminal ao painel central
-        centerPanel.add(terminal).expand().fill();
-
-        // === Painel direito ===
-        Table rightPanel = new Table();
-        rightPanel.pad(10);
-
-        // Subpainel de logs (superior)
-        Table logsPanel = new Table();
-        logsPanel.setBackground(skin.getDrawable("default-round"));
-        TextArea logs = new TextArea("LOGS\nInimigo acessou a pasta etc/shadows\nInimigo encontrou a primeira bandeira", skin);
-        logs.setDisabled(true);
-        logsPanel.add(logs).expand().fill();
-
-        // Subpainel de controle (inferior)
-        Table controlPanel = new Table();
-        controlPanel.setBackground(skin.getDrawable("default-round"));
-        Label controlLabel = new Label("Painel de Controle", skin);
-        TextArea controlArea = new TextArea("Gráficos e controle", skin);
-        controlArea.setDisabled(true);
-        controlPanel.add(controlLabel).padBottom(10).row();
-        controlPanel.add(controlArea).expand().fill();
-
-        // Adicionar subpainéis ao painel direito
-        rightPanel.add(logsPanel).expand().fill().height(Gdx.graphics.getHeight() * 0.5f).padBottom(10).row();
-        rightPanel.add(controlPanel).expand().fill().height(Gdx.graphics.getHeight() * 0.5f);
-
-        // Adicionar painéis ao layout principal
-        mainTable.add(leftPanel).width(Gdx.graphics.getWidth() * 0.2f).fillY();
-        mainTable.add(centerPanel).width(Gdx.graphics.getWidth() * 0.6f).fillY();
-        mainTable.add(rightPanel).width(Gdx.graphics.getWidth() * 0.2f).fillY();
+    @Override
+    public void resize(int width, int height) {
+        viewport.update(width, height, true);
     }
 
     @Override
     public void render() {
-        // Atualizar viewport para ajustar ao tamanho da janela atual
-        stage.getViewport().update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
-
-        // Limpa a tela e desenha a stage
+        Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        batch.setProjectionMatrix(viewport.getCamera().combined);
+        batch.begin();
+
+        // Renderiza o background
+        batch.draw(backgroundTexture, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+
+        // Calcula as dimensões do terminal esquerdo e direito
+        int padding = 10;
+        float terminalX = BLACK_AREA_X + padding;
+        float terminalY = BLACK_AREA_Y + padding;
+        float terminalWidth = (BLACK_AREA_WIDTH - 3 * padding) / 2;
+        float terminalHeight = BLACK_AREA_HEIGHT - 2 * padding;
+
+        batch.draw(terminalTexture, terminalX, terminalY, terminalWidth, terminalHeight);
+
+        float rightTerminalX = terminalX + terminalWidth + padding;
+
+        float rightTerminalHeight = (terminalHeight - padding) / 2;
+
+        batch.draw(terminalTexture, rightTerminalX, terminalY + rightTerminalHeight + padding, terminalWidth, rightTerminalHeight);
+
+        batch.draw(terminalTexture, rightTerminalX, terminalY, terminalWidth, rightTerminalHeight);
+
+        batch.end();
+
+        // Renderiza os botões no Stage
         stage.act(Gdx.graphics.getDeltaTime());
         stage.draw();
     }
 
     @Override
-    public void resize(int width, int height) {
-        // Atualizar o viewport e garantir que os componentes se ajustem ao novo tamanho
-        stage.getViewport().update(width, height, true);
-    }
-
-    @Override
     public void dispose() {
-        // Liberar recursos
-        stage.dispose();
-        skin.dispose();
+        batch.dispose();
         backgroundTexture.dispose();
+        terminalTexture.dispose();
+        hackButtonTexture.dispose();
+        menuButtonTexture.dispose();
+        logoutButtonTexture.dispose();
+        stage.dispose();
     }
 }
