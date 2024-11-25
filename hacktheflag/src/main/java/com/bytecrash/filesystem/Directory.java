@@ -22,6 +22,16 @@ public class Directory {
         this(name, null);
     }
 
+    public String getPath() {
+        StringBuilder path = new StringBuilder(name);
+        Directory current = parent;
+        while (current != null) {
+            path.insert(0, current.name + "/");
+            current = current.parent;
+        }
+        return "/" + path;
+    }
+
     public String getName() {
         return name;
     }

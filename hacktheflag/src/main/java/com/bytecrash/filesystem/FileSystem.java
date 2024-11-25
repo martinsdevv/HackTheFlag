@@ -1,36 +1,32 @@
 package com.bytecrash.filesystem;
 
-import com.bytecrash.game.CTFManager;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class FileSystem {
     private Directory root;
     private Directory currentDirectory;
-    private final String rootPath = "filesystem"; // Diretório raiz do sistema de arquivos
+    private final String rootPath; // Diretório raiz do sistema de arquivos
     private final FileContentProvider contentProvider;
-    private final CTFManager ctfManager;
+    private final Random random = new Random();
 
-    public FileSystem() {
-        // Limpa o diretório `filesystem` antes de inicializar o sistema de arquivos
-        deleteDirectory(Paths.get(rootPath).toFile());
+    // Construtor que aceita o caminho do sistema de arquivos
+    public FileSystem(String rootPath) {
+        this.rootPath = rootPath; // Caminho exclusivo para cada FileSystem
+        deleteDirectory(new File(rootPath)); // Limpa o diretório antes de inicializar
 
         root = new Directory("root");
         currentDirectory = root;
         contentProvider = new FileContentProvider();
-        ctfManager = new CTFManager(this);
 
-        // Criação do diretório de armazenamento físico para o sistema de arquivos
         createRootDirectory();
-
-        // Criação de uma estrutura de arquivos padrão
         setupBasicFileSystem();
-
-        // Distribuição de bandeiras aleatórias nos diretórios
-        ctfManager.distributeFlags();
     }
 
     private void createRootDirectory() {
@@ -38,28 +34,27 @@ public class FileSystem {
         if (!rootDir.exists()) {
             boolean created = rootDir.mkdirs();
             if (created) {
-                System.out.println("Diretório 'filesystem' criado para armazenar o sistema de arquivos.");
+                System.out.println("Diretório '" + rootPath + "' criado para armazenar o sistema de arquivos.");
             } else {
-                System.out.println("Falha ao criar o diretório 'filesystem'.");
+                System.out.println("Falha ao criar o diretório '" + rootPath + "'.");
             }
         }
     }
 
-    // Método para deletar o diretório `filesystem` e todos os seus conteúdos
     private void deleteDirectory(File directory) {
         if (directory.exists()) {
             File[] files = directory.listFiles();
-            if (files != null) { // Verifica se o diretório contém arquivos
+            if (files != null) {
                 for (File file : files) {
                     if (file.isDirectory()) {
-                        deleteDirectory(file); // Chama recursivamente para subdiretórios
+                        deleteDirectory(file); // Recursivamente deleta subdiretórios
                     } else {
                         file.delete(); // Deleta arquivo
                     }
                 }
             }
-            directory.delete(); // Deleta o diretório após esvaziá-lo
-            System.out.println("Diretório 'filesystem' apagado com sucesso.");
+            directory.delete(); // Deleta o diretório vazio
+            System.out.println("Diretório '" + rootPath + "' apagado com sucesso.");
         }
     }
 
@@ -68,29 +63,26 @@ public class FileSystem {
         Directory home = new Directory("home", root);
         Directory etc = new Directory("etc", root);
         Directory usr = new Directory("usr", root);
-    
+
         root.addDirectory(home);
         root.addDirectory(etc);
         root.addDirectory(usr);
-    
+
         Directory userDir = new Directory("user", home);
         home.addDirectory(userDir);
-    
-        // Criação da estrutura física dos diretórios
-        createPhysicalDirectory(rootPath, home);
-        createPhysicalDirectory(rootPath, etc);
-        createPhysicalDirectory(rootPath, usr);
-        createPhysicalDirectory(rootPath + "/home", userDir);
-    
-        // Criação de arquivos padrão no sistema de arquivos virtual e físico
+
+        createPhysicalDirectory(home);
+        createPhysicalDirectory(etc);
+        createPhysicalDirectory(usr);
+        createPhysicalDirectory(userDir);
+
         createFileInSystem(etc, "config.txt", contentProvider.getContent("config.txt"));
         createFileInSystem(usr, "README.md", contentProvider.getContent("README.md"));
         createFileInSystem(userDir, "welcome.txt", contentProvider.getContent("welcome.txt"));
     }
-    
 
-    public void createPhysicalDirectory(String parentPath, Directory directory) {
-        Path dirPath = Paths.get(rootPath, parentPath, directory.getName());
+    public void createPhysicalDirectory(Directory directory) {
+        Path dirPath = Paths.get(rootPath, getFullPath(directory));
         try {
             if (Files.notExists(dirPath)) {
                 Files.createDirectory(dirPath);
@@ -142,13 +134,36 @@ public class FileSystem {
         return root;
     }
 
-    public Directory findDirectory(String name) {
-        for (Directory dir : currentDirectory.getDirectories()) {
-            if (dir.getName().equals(name)) {
-                return dir;
+    public Directory findDirectory(String path) {
+        if (path.startsWith("/")) {
+            return findDirectoryAbsolute(path);
+        } else {
+            for (Directory dir : currentDirectory.getDirectories()) {
+                if (dir.getName().equals(path)) {
+                    return dir;
+                }
+            }
+            return null;
+        }
+    }
+
+    public Directory findDirectoryAbsolute(String path) {
+        String[] parts = path.split("/");
+        Directory current = root;
+
+        for (String part : parts) {
+            if (part.isEmpty()) continue; // Ignorar partes vazias do caminho
+            current = current.getDirectories()
+                    .stream()
+                    .filter(dir -> dir.getName().equals(part))
+                    .findFirst()
+                    .orElse(null);
+
+            if (current == null) {
+                return null; // Caminho inválido
             }
         }
-        return null;
+        return current;
     }
 
     public com.bytecrash.filesystem.File findFile(String fileName) {
@@ -158,5 +173,19 @@ public class FileSystem {
             }
         }
         return null;
+    }
+
+    public Directory getRandomDirectory() {
+        List<Directory> allDirectories = getAllDirectories(getRoot());
+        return allDirectories.get(random.nextInt(allDirectories.size()));
+    }
+
+    private List<Directory> getAllDirectories(Directory directory) {
+        List<Directory> directories = new ArrayList<>();
+        directories.add(directory);
+        for (Directory dir : directory.getDirectories()) {
+            directories.addAll(getAllDirectories(dir));
+        }
+        return directories;
     }
 }

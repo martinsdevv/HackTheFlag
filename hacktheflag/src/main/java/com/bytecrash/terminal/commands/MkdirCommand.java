@@ -19,7 +19,7 @@ public class MkdirCommand implements Command {
 
         Directory newDir = new Directory(argument, fileSystem.getCurrentDirectory());
         fileSystem.getCurrentDirectory().addDirectory(newDir);
-        fileSystem.createPhysicalDirectory(fileSystem.getFullPath(fileSystem.getCurrentDirectory()), newDir);
+        fileSystem.createPhysicalDirectory(newDir);
         return "Diretório '" + argument + "' criado com sucesso.";
     }
 

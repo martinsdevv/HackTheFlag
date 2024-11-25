@@ -1,14 +1,13 @@
 package com.bytecrash.terminal.commands;
 
-import com.bytecrash.filesystem.Directory;
-import com.bytecrash.filesystem.FileSystem;
+import com.bytecrash.game.CTFManager;
 import com.bytecrash.terminal.Command;
 
 public class HideFlagCommand implements Command {
-    private FileSystem fileSystem;
+    private final CTFManager ctfManager;
 
-    public HideFlagCommand(FileSystem fileSystem) {
-        this.fileSystem = fileSystem;
+    public HideFlagCommand(CTFManager ctfManager) {
+        this.ctfManager = ctfManager;
     }
 
     @Override
@@ -17,12 +16,17 @@ public class HideFlagCommand implements Command {
             return "Por favor, forneça o nome de um diretório para esconder a flag.";
         }
 
-        Directory directory = fileSystem.findDirectory(argument);
-        if (directory != null) {
-            directory.setHasUserFlag(true); // Marcamos o diretório como contendo a flag
-            return "Flag escondida com sucesso no diretório: " + argument;
+        boolean success = ctfManager.hideFlag(argument);
+        if (success) {
+            if (ctfManager.allFlagsHidden()) {
+                ctfManager.endSetupPhase();
+                return "Flag escondida com sucesso no diretório: " + argument +
+                        "\nTodas as bandeiras foram escondidas! O segundo round começou!";
+            } else {
+                return "Flag escondida com sucesso no diretório: " + argument;
+            }
         } else {
-            return "Diretório não encontrado: " + argument;
+            return "Falha ao esconder a bandeira. Verifique o diretório ou se você já usou todas as bandeiras.";
         }
     }
 

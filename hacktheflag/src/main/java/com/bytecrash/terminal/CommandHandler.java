@@ -1,7 +1,7 @@
 package com.bytecrash.terminal;
 
 import com.bytecrash.filesystem.Directory;
-import com.bytecrash.filesystem.FileSystem;
+import com.bytecrash.game.CTFManager;
 import com.bytecrash.terminal.commands.CatCommand;
 import com.bytecrash.terminal.commands.CdCommand;
 import com.bytecrash.terminal.commands.HideFlagCommand;
@@ -12,66 +12,65 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class CommandHandler {
-    private FileSystem fileSystem;
-    private boolean isFirstRound = true;
-    private Map<String, Command> commands = new HashMap<>();  // Mapa para armazenar os comandos registrados
+    private final CTFManager ctfManager; // Gerenciador do fluxo do jogo
+    private final Map<String, Command> commands = new HashMap<>(); // Mapa para armazenar os comandos registrados
 
-    public CommandHandler(FileSystem fileSystem) {
-        this.fileSystem = fileSystem;
+    public CommandHandler(CTFManager ctfManager) {
+        this.ctfManager = ctfManager;
 
         // Registro dos comandos
-        registerCommand(new LsCommand(fileSystem));
-        registerCommand(new CdCommand(fileSystem));
-        registerCommand(new CatCommand(fileSystem));
-        registerCommand(new MkdirCommand(fileSystem));
-        registerCommand(new HideFlagCommand(fileSystem));
+        registerCommand(new LsCommand(ctfManager.getCurrentFileSystem()));
+        registerCommand(new CdCommand(ctfManager.getCurrentFileSystem()));
+        registerCommand(new CatCommand(ctfManager.getCurrentFileSystem()));
+        registerCommand(new MkdirCommand(ctfManager.getCurrentFileSystem()));
+        registerCommand(new HideFlagCommand(ctfManager));
     }
 
     public void registerCommand(Command command) {
-        commands.put(command.getName(), command);  // Adiciona o comando ao mapa
+        commands.put(command.getName(), command); // Adiciona o comando ao mapa
     }
 
     public String executeCommand(String commandLine) {
         String[] parts = commandLine.split(" ", 2);
         String commandName = parts[0];
         String argument = parts.length > 1 ? parts[1] : null;
-
+    
+        if (!ctfManager.isPlayerTurn()) {
+            return "Não é o seu turno.";
+        }
+    
+        if (ctfManager.isSetupPhase() && commandName.equals("ssh")) {
+            return "O comando 'ssh' não pode ser usado durante a fase de setup.";
+        }
+    
         if (commandName.equals("hideflag")) {
             return handleHideFlag(argument);
         }
-
+    
         Command command = commands.get(commandName);
         if (command != null) {
-            return command.execute(argument);
+            boolean actionPerformed = ctfManager.performPlayerAction(commandName);
+            if (actionPerformed) {
+                return command.execute(argument);
+            } else {
+                return "Você não pode executar mais comandos neste turno.";
+            }
+        } else if (commandName.equals("skip")) {
+            ctfManager.switchTurn();
+            return "Turno pulado. É a vez do adversário.";
         } else {
             return "Comando não reconhecido: " + commandName;
         }
     }
+    
 
     private String handleHideFlag(String argument) {
-        if (!isFirstRound) {
-            return "O comando 'hideflag' só pode ser usado no primeiro round.";
-        }
-
-        if (argument == null || argument.isBlank()) {
-            return "Por favor, especifique um diretório para esconder a bandeira.";
-        }
-
-        Directory dir = fileSystem.findDirectory(argument);
-        if (dir != null) {
-            // Criar o arquivo 'flag.txt' no diretório especificado
-            fileSystem.createFileInSystem(dir, "flag.txt", "Esta é a bandeira!");
-
-            isFirstRound = false; // Termina o primeiro round
-            return "Flag escondida com sucesso no diretório: " + argument + 
-                   "\nO segundo round começou! Boa sorte!";
-        } else {
-            return "Diretório não encontrado: " + argument;
-        }
+        return new HideFlagCommand(ctfManager).execute(argument);
     }
+    
 
     public String getCurrentDirectoryPath() {
-        Directory current = fileSystem.getCurrentDirectory();
+        Directory current = ctfManager.getCurrentFileSystem().getCurrentDirectory();
         StringBuilder path = new StringBuilder(current.getName());
 
         // Constrói o caminho completo do diretório atual
@@ -81,9 +80,5 @@ public class CommandHandler {
         }
 
         return "/" + path.toString();
-    }
-
-    public boolean isFirstRound() {
-        return isFirstRound;
     }
 }

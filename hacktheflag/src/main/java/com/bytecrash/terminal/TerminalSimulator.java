@@ -1,30 +1,50 @@
 package com.bytecrash.terminal;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.scenes.scene2d.ui.TextArea;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 
 public class TerminalSimulator implements InputProcessor {
     private final CommandHandler commandHandler;
     private final StringBuilder terminalOutput;
-    private TextArea terminalDisplay;
+    private Label terminalDisplay;
     private String currentInput;
+    private final ScrollPane terminalScrollPane;
 
-    public TerminalSimulator(CommandHandler commandHandler) {
+    public TerminalSimulator(CommandHandler commandHandler, ScrollPane terminalScrollPane) {
         this.commandHandler = commandHandler;
         this.terminalOutput = new StringBuilder("[martins@hacktheflag ~] $ ");
         this.currentInput = "";
+        this.terminalScrollPane = terminalScrollPane; // Armazena o ScrollPane
     }
 
-    public void setTerminalDisplay(TextArea terminalDisplay) {
+    public void setTerminalDisplay(Label terminalDisplay) {
         this.terminalDisplay = terminalDisplay;
         this.terminalDisplay.setText(terminalOutput.toString());
     }
+    
 
     public void appendToTerminal(String result) {
-        // Adiciona o resultado do comando sem sobrescrever o prompt
-        terminalOutput.append(currentInput).append("\n").append(result).append("\n[martins@hacktheflag ~] $ ");
+        terminalOutput.append(currentInput).append("\n")
+                      .append(result).append("\n")
+                      .append("[martins@hacktheflag ")
+                      .append(commandHandler.getCurrentDirectoryPath())
+                      .append("] $ ");
         currentInput = ""; // Limpa o comando atual
-        terminalDisplay.setText(terminalOutput.toString()); // Atualiza a exibição
+    
+        // Atualiza o texto no Label
+        if (terminalDisplay != null) {
+            terminalDisplay.setText(terminalOutput.toString());
+        }
+    
+        // Força o scroll para o final
+        Gdx.app.postRunnable(() -> {
+            if (terminalScrollPane != null) {
+                terminalScrollPane.layout(); // Atualiza o layout
+                terminalScrollPane.scrollTo(0, 0, 0, terminalScrollPane.getScrollHeight()); // Move para o final
+            }
+        });
     }
     
 
@@ -43,13 +63,18 @@ public class TerminalSimulator implements InputProcessor {
             // Qualquer outro caractere
             currentInput += character;
         }
+
         // Atualiza a exibição com o comando sendo digitado
         terminalDisplay.setText(terminalOutput.toString() + currentInput);
+
+        if (terminalScrollPane != null) {
+            terminalScrollPane.layout(); // Atualiza o layout do ScrollPane
+            Gdx.app.postRunnable(() -> terminalScrollPane.scrollTo(0, 0, 0, terminalScrollPane.getMaxY()));
+        }
+
         return true;
     }
 
-
-    // Implementação dos métodos obrigatórios da interface InputProcessor
 
     @Override
     public boolean keyDown(int keycode) {
