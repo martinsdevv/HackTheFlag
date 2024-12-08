@@ -42,7 +42,7 @@ public class CTFManager {
         this.playerFileSystem = playerFileSystem;
         this.enemyFileSystem = enemyFileSystem;
         this.commandHandler = new CommandHandler(this);
-        this.enemyAI = new EnemyAI(enemyFileSystem, commandHandler, llamaAPI);
+        this.enemyAI = new EnemyAI(enemyFileSystem, commandHandler, llamaAPI, this);
         this.mainGame = mainGame;
     }
 
@@ -71,14 +71,14 @@ public class CTFManager {
             success = playerFileSystem.hideFlag(directoryPath.getName(), true);
             if (success) {
                 playerFlagHidden = true;
-                playerFileSystem.createFileInSystem(directoryPath, "flag.txt", "Jogador escondeu a bandeira!");
+                playerFileSystem.createFileInSystem(directoryPath, "playerFlag.txt", "Jogador escondeu a bandeira!");
                 System.out.println("Jogador escondeu a bandeira em: " + directoryPath);
             }
         } else {
             success = enemyFileSystem.hideFlag(directoryPath.getName(), false);
             if (success) {
                 enemyFlagHidden = true;
-                enemyFileSystem.createFileInSystem(directoryPath, "flag.txt", "IA escondeu a bandeira!");
+                enemyFileSystem.createFileInSystem(directoryPath, "machineFlag.txt", "IA escondeu a bandeira!");
                 System.out.println("IA escondeu a bandeira em: " + directoryPath);
             }
         }
@@ -103,7 +103,6 @@ public class CTFManager {
     
     public void switchTurn() {
         if (setupPhase) {
-            // Durante a fase de configuração, alterna apenas se necessário
             if (isPlayerTurn && playerFlagHidden) {
                 isPlayerTurn = false;
                 System.out.println("Turno da IA iniciado para esconder a bandeira.");
@@ -112,30 +111,25 @@ public class CTFManager {
                 isPlayerTurn = true;
                 System.out.println("Turno do jogador iniciado para esconder a bandeira.");
             }
-    
-            checkEndOfSetupPhase(); // Verifica o fim da fase de setup
+            checkEndOfSetupPhase();
             return;
         }
     
-        // Após a configuração, alterna os turnos normalmente
         if (isPlayerTurn) {
             playerCommands = 0; // Reseta comandos do jogador
             playerTurns++;
-            mainGame.addLog("Turno do jogador encerrado. Total de turnos: " + playerTurns);
         } else {
             enemyCommands = 0; // Reseta comandos da IA
             enemyTurns++;
-            mainGame.addLog("Turno da IA encerrado. Total de turnos: " + enemyTurns);
         }
     
-        // Alterna o turno
         isPlayerTurn = !isPlayerTurn;
     
         if (isPlayerTurn) {
             mainGame.addLog("Turno do jogador iniciado.");
         } else {
             mainGame.addLog("Turno da IA iniciado.");
-            startEnemyTurn(); // Chamada explícita da IA ao alternar o turno
+            startEnemyTurn();
         }
     }
     
@@ -162,7 +156,10 @@ public class CTFManager {
 
     public void startEnemyTurn() {
         System.out.println("Turno da IA iniciado.");
-        
+    
+        // Reinicia o contador de comandos da IA
+        enemyCommands = 0; 
+    
         if (setupPhase) {
             boolean success = enemyAI.decideAndHideFlag();
             if (!success) {
@@ -172,44 +169,12 @@ public class CTFManager {
                 System.out.println("IA escondeu a bandeira com sucesso.");
             }
         
-            // Após a tentativa da IA, verifica se a fase de configuração terminou
             checkEndOfSetupPhase();
-        
-            // Se a fase de configuração terminou, não chama switchTurn
-            if (!setupPhase) {
-                return; // Fim do turno da IA sem alternar novamente
-            }
-        } else {
-            // Durante o jogo regular, a IA pode executar múltiplos comandos
-            executeAICommands();
-        }
-    }
-
-    private void executeAICommands() {
-        System.out.println("🤖 IA começando a executar comandos...");
-    
-        // Processa os comandos da IA até atingir o limite
-        while (enemyCommands < MAX_COMMANDS) {
-            boolean success = enemyAI.performAction();
-            enemyCommands++; // Conta os comandos executados pela IA
-    
-            if (!success) {
-                mainGame.addLog("IA falhou ao executar o comando.");
-            } else {
-                mainGame.addLog("IA completou o comando com sucesso.");
-            }
-    
-            System.out.println("🤖 Comando da IA executado. Total de comandos neste turno: " + enemyCommands + "/" + MAX_COMMANDS);
-    
-            // Apenas verifica o limite, mas não troca o turno aqui
-            if (enemyCommands >= MAX_COMMANDS) {
-                System.out.println("IA atingiu o limite de comandos para este turno.");
-                break; // Sai do loop e prepara a troca de turno
-            }
+            return;
         }
     
-        // O turno da IA é encerrado apenas após atingir o limite de comandos
-        switchTurn();
+        // Executa múltiplos comandos da IA em sequência
+        executeAICommands();
     }
     
     
@@ -265,46 +230,60 @@ public class CTFManager {
         }
     
         return true;
-    }
-    
-    
-    private void executeAICommand() {
-        // IA só pode esconder a bandeira na fase de configuração
-        if (setupPhase) {
-            boolean success = enemyAI.decideAndHideFlag();
-            if (!success) {
-                mainGame.addLog("IA falhou ao esconder a bandeira.");
-            } else {
-                mainGame.addLog("IA escondeu a bandeira com sucesso.");
-            }
-            return; // Termina a execução da IA durante a configuração
+    }   
+     
+    public boolean performEnemyAction(String command) {
+        if (isPlayerTurn) {
+            mainGame.addLog("Erro: Não é o turno da IA.");
+            return false;
         }
     
-        // Limita o número de comandos da IA por turno
         if (enemyCommands >= MAX_COMMANDS) {
-            mainGame.addLog("IA atingiu o limite de comandos neste turno.");
-            switchTurn(); // Troca o turno
-            return;
+            mainGame.addLog("Limite de comandos da IA atingido neste turno.");
+            return false;
         }
     
-        // Executa o comando da IA
         enemyCommands++;
-        mainGame.addLog("IA executou um comando.");
+        mainGame.addLog("IA executou o comando: " + command);
+        System.out.println("Comando atual da IA: " + enemyCommands + "/" + MAX_COMMANDS);
     
-        // Exemplo de ação durante o jogo (adicionar lógica futura aqui)
-        boolean actionResult = enemyAI.performAction();
-        if (!actionResult) {
-            mainGame.addLog("IA falhou ao executar o comando.");
-        } else {
-            mainGame.addLog("IA completou o comando com sucesso.");
-        }
-    
-        // Verifica se atingiu o limite de comandos
         if (enemyCommands >= MAX_COMMANDS) {
-            mainGame.addLog("IA completou seu turno.");
-            switchTurn();
+            mainGame.addLog("IA atingiu o limite de comandos neste turno. Turno encerrado.");
+            return false; // Indica que o turno acabou
         }
+    
+        return true;
     }
+    
+    
+    private void executeAICommands() {
+        System.out.println("🤖 IA começando a executar comandos...");
+    
+        while (enemyCommands < MAX_COMMANDS) {
+            // Solicita à IA que execute um comando
+            boolean success = enemyAI.performAction();
+    
+            if (!success) {
+                mainGame.addLog("IA falhou ao executar o comando.");
+            } else {
+                mainGame.addLog("IA completou o comando com sucesso.");
+            }
+    
+            // Incrementa o contador após cada comando bem-sucedido
+            enemyCommands++;
+            System.out.println("🤖 Comando da IA executado. Total: " + enemyCommands + "/" + MAX_COMMANDS);
+    
+            // Verifica se atingiu o limite de comandos
+            if (enemyCommands >= MAX_COMMANDS) {
+                break;
+            }
+        }
+    
+        // Após executar os comandos, encerra o turno
+        System.out.println("🤖 IA atingiu o limite de comandos para este turno.");
+        switchTurn(); // Alterna para o próximo turno
+    }
+    
     
     public boolean isInEnemySystem() {
         return isInEnemySystem;

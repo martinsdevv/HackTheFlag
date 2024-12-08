@@ -115,6 +115,8 @@ public class LlamaAPI {
         if (command == null || command.isBlank()) {
             return null;
         }
+    
+        // Remove markdown (caso o comando esteja entre ` ou ```)
         command = command.trim();
         if (command.startsWith("`") && command.endsWith("`")) {
             command = command.substring(1, command.length() - 1).trim();
@@ -122,9 +124,28 @@ public class LlamaAPI {
         if (command.startsWith("```") && command.endsWith("```")) {
             command = command.substring(3, command.length() - 3).trim();
         }
-        command = command.replaceAll("[\\r\\n]+", " ").replaceAll("\\s+", " ").trim();
-        command = command.replace("/", ""); // Remove qualquer barra no início do caminho
+    
+        // Remove aspas simples, aspas duplas e barras iniciais desnecessárias
+        command = command.replaceAll("[\"']", ""); // Remove aspas simples e duplas
+        command = command.replaceAll("^/", ""); // Remove barras no início
+        command = command.replaceAll("[\\r\\n]+", " "); // Substitui novas linhas por espaço
+        command = command.replaceAll("\\s+", " "); // Substitui múltiplos espaços por um único
+    
+        // Permitir `cd ..` mas prevenir outras construções com `..` perigosas
+        if (command.contains("..") && !command.equals("cd ..")) {
+            System.out.println("⚠️ Comando inválido detectado: construções perigosas com '..'.");
+            return null;
+        }
+    
+        // Bloqueia caminhos absolutos e comandos com diretórios fora do escopo
+        if (command.contains("../") || command.contains("/..")) {
+            System.out.println("⚠️ Comando inválido detectado: navegação fora do escopo.");
+            return null;
+        }
+    
+        // Log do comando final limpo
         System.out.println("🧹 Comando final limpo: " + command);
-        return command;
+        return command.trim();
     }
+    
 }

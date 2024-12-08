@@ -53,10 +53,15 @@ public class CommandHandler {
         String commandName = parts[0].toLowerCase();
         String argument = parts.length > 1 ? parts[1] : null;
     
-        // Verificar se o jogador pode executar o comando
-        if (!ctfManager.performPlayerAction(commandName)) {
-            return "Você não pode executar mais comandos neste turno.";
-        }
+        if (ctfManager.isPlayerTurn()) {
+            if (!ctfManager.performPlayerAction(commandName)) {
+                return "Você não pode executar mais comandos neste turno.";
+            }
+        } else {
+            if (!ctfManager.performEnemyAction(commandName)) {
+                return "IA não pode executar mais comandos neste turno.";
+            }
+        }        
     
         // Obtém o comando registrado
         Command command = commands.get(commandName);
@@ -71,7 +76,15 @@ public class CommandHandler {
                 ((FileSystemAwareCommand) command).setFileSystem(activeFileSystem);
             }
     
-            return command.execute(argument);
+            // Executa o comando e captura a resposta
+            String commandOutput = command.execute(argument);
+    
+            // Garante que nunca seja nulo
+            if (commandOutput == null || commandOutput.isBlank()) {
+                return "Comando executado, mas sem saída.";
+            }
+            
+            return commandOutput;
         } catch (Exception e) {
             return "Erro ao executar o comando '" + commandName + "': " + e.getMessage();
         }
