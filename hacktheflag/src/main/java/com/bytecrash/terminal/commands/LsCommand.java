@@ -4,8 +4,9 @@ import com.bytecrash.filesystem.FileSystem;
 import com.bytecrash.filesystem.Directory;
 import com.bytecrash.filesystem.File;
 import com.bytecrash.terminal.Command;
+import com.bytecrash.terminal.FileSystemAwareCommand;
 
-public class LsCommand implements Command {
+public class LsCommand implements FileSystemAwareCommand {
     private FileSystem fileSystem;
 
     public LsCommand(FileSystem fileSystem) {
@@ -30,5 +31,10 @@ public class LsCommand implements Command {
     @Override
     public String getName() {
         return "ls";
+    }
+
+    @Override
+    public void setFileSystem(FileSystem fileSystem) {
+        this.fileSystem = fileSystem;
     }
 }

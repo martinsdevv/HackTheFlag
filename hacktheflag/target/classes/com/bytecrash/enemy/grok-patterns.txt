@@ -1,0 +1,2 @@
+GAME_STATE currentDirectory=%{DATA:currentDirectory} availableCommands=%{DATA:availableCommands} flagsHidden=%{WORD:flagsHidden}
+PLAYER_ACTION command=%{WORD:command} arguments=%{DATA:arguments}

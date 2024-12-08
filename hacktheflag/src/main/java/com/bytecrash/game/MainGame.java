@@ -1,5 +1,8 @@
 package com.bytecrash.game;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
@@ -53,17 +56,16 @@ public class MainGame extends ApplicationAdapter {
     private static final int BLACK_AREA_WIDTH = 1658;
     private static final int BLACK_AREA_HEIGHT = 1062;
 
-    private int playerTimeRemaining = 600; // Tempo total do jogador (10 minutos)
-    private int machineTimeRemaining = 600; // Tempo total da máquina (10 minutos)
+    private ScrollPane logScrollPane;
     private Label playerTimerLabel; // Label para o timer do jogador
-    private Label machineTimerLabel; // Label para o timer da máquina
-    private boolean isPlayerTurn = true; // Controle de turno
+    private Label logLabel;
     private float timeAccumulator = 0; // Acumula o tempo decorrido para reduzir o cronômetro
+    private List<String> logs = new ArrayList<>();
 
     FileSystem playerFileSystem = new FileSystem("player");
     FileSystem machineFileSystem = new FileSystem("machine");
 
-    CTFManager ctfManager = new CTFManager(playerFileSystem, machineFileSystem);
+    private CTFManager ctfManager;
 
     @Override
     public void create() {
@@ -78,6 +80,8 @@ public class MainGame extends ApplicationAdapter {
             Gdx.files.internal("assets/skins/uiskin.json"),
             new TextureAtlas(Gdx.files.internal("assets/skins/uiskin.atlas"))
         );
+
+        ctfManager = new CTFManager(playerFileSystem, machineFileSystem, stage, this);
 
         
         CommandHandler commandHandler = new CommandHandler(ctfManager);
@@ -153,11 +157,24 @@ public class MainGame extends ApplicationAdapter {
         Gdx.input.setInputProcessor(terminalSimulator);
 
         playerTimerLabel = new Label("Jogador: 10:00", skin);
-        machineTimerLabel = new Label("Máquina: 10:00", skin);
-        playerTimerLabel.setPosition(10, BLACK_AREA_HEIGHT - 50); // Posição do timer do jogador
-        machineTimerLabel.setPosition(10, BLACK_AREA_HEIGHT - 100);
+        playerTimerLabel.setPosition(10, VIRTUAL_HEIGHT - 50);
         stage.addActor(playerTimerLabel);
-        stage.addActor(machineTimerLabel);
+
+        // LOGS
+
+        logLabel = new Label("LOGS\n", skin);
+        logLabel.setWrap(true);
+
+        Table logTable = new Table();
+        logTable.top().left();
+        logTable.add(logLabel).expandX().fillX();
+
+        logScrollPane = new ScrollPane(logTable, skin);
+        logScrollPane.setSize(400, 500); // Tamanho do log
+        logScrollPane.setPosition(VIRTUAL_WIDTH - 815, VIRTUAL_HEIGHT - 530);
+        stage.addActor(logScrollPane);
+
+        addLog("Jogo iniciado!");
     }
 
     @Override
@@ -176,19 +193,24 @@ public class MainGame extends ApplicationAdapter {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         if (timeAccumulator >= 1) {
-            ctfManager.updateTime(1); // Atualiza o tempo restante no CTFManager
-    
-            if (!ctfManager.isPlayerTurn()) {
-                ctfManager.switchTurn(); // Força a máquina a jogar no turno dela
+            if (ctfManager.isPlayerTurn()) {
+                ctfManager.decrementPlayerTime();
+                updateTimerLabel();
+                if (ctfManager.getPlayerTimeRemaining() <= 0) {
+                    addLog("Tempo do jogador esgotado!");
+                    ctfManager.switchTurn(); // Força a troca para a IA
+                }
+            } else {
+                ctfManager.incrementAITime(); // Atualiza o tempo e comandos da IA
             }
     
-            updateTimerLabels(); // Atualiza os rótulos do tempo na interface
-            timeAccumulator = 0;
+            timeAccumulator = 0; // Reseta acumulador
         }
 
         // Configura o SpriteBatch para desenhar os elementos do jogo
         batch.setProjectionMatrix(viewport.getCamera().combined);
         batch.begin();
+        
 
         // Renderiza o background
         batch.draw(backgroundTexture, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
@@ -207,6 +229,9 @@ public class MainGame extends ApplicationAdapter {
         batch.draw(terminalTexture, rightTerminalX, terminalY + rightTerminalHeight + padding, terminalWidth, rightTerminalHeight);
         batch.draw(terminalTexture, rightTerminalX, terminalY, terminalWidth, rightTerminalHeight);
 
+        logScrollPane.layout();
+        logScrollPane.setScrollY(logScrollPane.getMaxY());
+
         batch.end(); // Finaliza o SpriteBatch antes de desenhar o Stage
 
         // Atualiza e desenha os elementos da interface (Stage)
@@ -215,23 +240,34 @@ public class MainGame extends ApplicationAdapter {
 
         // Gerencia o scroll do terminal
         if (shouldScroll && terminalScrollPane != null) {
-            terminalScrollPane.layout(); // Recalcula o layout
-            terminalScrollPane.setScrollY(terminalScrollPane.getMaxY()); // Move para o final
-            shouldScroll = false; // Evita scroll desnecessário
+            terminalScrollPane.layout();
+            terminalScrollPane.setScrollY(terminalScrollPane.getMaxY());
+            shouldScroll = false;
         }
     }
 
-    private void updateTimerLabels() {
-        // Atualiza os labels do cronômetro com o tempo restante formatado
+    private void updateTimerLabel() {
         playerTimerLabel.setText("Jogador: " + formatTime(ctfManager.getPlayerTimeRemaining()));
-        machineTimerLabel.setText("Máquina: " + formatTime(ctfManager.getMachineTimeRemaining()));
     }
     
-    // Formata o tempo restante em minutos e segundos
     private String formatTime(int totalSeconds) {
         int minutes = totalSeconds / 60;
         int seconds = totalSeconds % 60;
         return String.format("%02d:%02d", minutes, seconds);
+    }
+
+    public void addLog(String message) {
+        logs.add("[" + formatTime(ctfManager.getPlayerTimeRemaining()) + "] - " + message);
+        StringBuilder logText = new StringBuilder("LOGS\n");
+        for (String log : logs) {
+            logText.append(log).append("\n");
+        }
+        logLabel.setText(logText.toString());
+
+        if (message.contains("venceu o jogo")) {
+            // Bloquear ações futuras ou exibir mensagem de finalização
+            Gdx.app.exit();
+        }
     }
 
 

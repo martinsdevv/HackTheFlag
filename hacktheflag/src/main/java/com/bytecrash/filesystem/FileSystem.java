@@ -16,18 +16,20 @@ public class FileSystem {
     private final FileContentProvider contentProvider;
     private final Random random = new Random();
 
-    // Construtor que aceita o caminho do sistema de arquivos
     public FileSystem(String rootPath) {
-        this.rootPath = rootPath; // Caminho exclusivo para cada FileSystem
-        deleteDirectory(new File(rootPath)); // Limpa o diretório antes de inicializar
-
+        this.rootPath = rootPath; 
+        deleteDirectory(new File(rootPath)); 
+    
         root = new Directory("root");
         currentDirectory = root;
         contentProvider = new FileContentProvider();
-
+    
         createRootDirectory();
         setupBasicFileSystem();
+    
+        System.out.println("🆕 FileSystem criado: " + this + " com rootPath: " + rootPath);
     }
+    
 
     private void createRootDirectory() {
         File rootDir = new File(rootPath);
@@ -47,19 +49,18 @@ public class FileSystem {
             if (files != null) {
                 for (File file : files) {
                     if (file.isDirectory()) {
-                        deleteDirectory(file); // Recursivamente deleta subdiretórios
+                        deleteDirectory(file);
                     } else {
-                        file.delete(); // Deleta arquivo
+                        file.delete();
                     }
                 }
             }
-            directory.delete(); // Deleta o diretório vazio
+            directory.delete();
             System.out.println("Diretório '" + rootPath + "' apagado com sucesso.");
         }
     }
 
     private void setupBasicFileSystem() {
-        // Diretórios e arquivos padrão
         Directory home = new Directory("home", root);
         Directory etc = new Directory("etc", root);
         Directory usr = new Directory("usr", root);
@@ -135,32 +136,45 @@ public class FileSystem {
     }
 
     public Directory findDirectory(String path) {
+        System.out.println("🔍 Buscando diretório no FileSystem: " + this + ", path: " + path);
+    
         if (path.startsWith("/")) {
             return findDirectoryAbsolute(path);
         } else {
             for (Directory dir : currentDirectory.getDirectories()) {
                 if (dir.getName().equals(path)) {
+                    System.out.println("✅ Diretório encontrado: " + dir.getName() + " (Referência: " + dir + ")");
                     return dir;
                 }
             }
+        }
+    
+        System.out.println("❌ Diretório não encontrado: " + path);
+        return null;
+    }
+    
+    
+    
+    public Directory findDirectoryAbsolute(String path) {
+        if (!path.startsWith("/")) {
+            System.out.println("❌ Caminho absoluto inválido: " + path);
             return null;
         }
-    }
-
-    public Directory findDirectoryAbsolute(String path) {
+    
         String[] parts = path.split("/");
         Directory current = root;
-
+    
         for (String part : parts) {
-            if (part.isEmpty()) continue; // Ignorar partes vazias do caminho
+            if (part.isEmpty()) continue;
             current = current.getDirectories()
                     .stream()
                     .filter(dir -> dir.getName().equals(part))
                     .findFirst()
                     .orElse(null);
-
+    
             if (current == null) {
-                return null; // Caminho inválido
+                System.out.println("❌ Não foi possível localizar o diretório '" + part + "' em " + path);
+                return null;
             }
         }
         return current;
@@ -177,10 +191,22 @@ public class FileSystem {
 
     public Directory getRandomDirectory() {
         List<Directory> allDirectories = getAllDirectories(getRoot());
-        return allDirectories.get(random.nextInt(allDirectories.size()));
+        if (allDirectories.isEmpty()) {
+            System.out.println("⚠️  Nenhum diretório disponível para esconder a bandeira.");
+            return null;
+        }
+        Directory randomDirectory = allDirectories.get(new Random().nextInt(allDirectories.size()));
+        
+        // ⚠️ Se o diretório sorteado for "root", tente novamente
+        if (randomDirectory.getName().equalsIgnoreCase("root")) {
+            System.out.println("⚠️  Diretório raiz não pode ser escolhido. Sorteando novamente...");
+            return getRandomDirectory();
+        }
+        return randomDirectory;
     }
+    
 
-    private List<Directory> getAllDirectories(Directory directory) {
+    public List<Directory> getAllDirectories(Directory directory) {
         List<Directory> directories = new ArrayList<>();
         directories.add(directory);
         for (Directory dir : directory.getDirectories()) {
@@ -188,4 +214,58 @@ public class FileSystem {
         }
         return directories;
     }
+
+    public boolean hideFlag(String directoryName, boolean isPlayer) {
+        Directory directory = findDirectory(directoryName);
+        if (directory == null) {
+            System.out.println("❌ Diretório não encontrado: " + directoryName);
+            return false;
+        }
+    
+        // Verifica o estado do diretório
+        System.out.println("🛠 Diretório atual: " + directory + ", Nome: " + directory.getName());
+    
+        // Verifica se já há uma bandeira escondida
+        if (isPlayer && directory.hasUserFlag()) {
+            System.out.println("⚠️ Diretório já possui bandeira do jogador.");
+            return false;
+        } else if (!isPlayer && directory.hasIAFlag()) {
+            System.out.println("⚠️ Diretório já possui bandeira da IA.");
+            return false;
+        }
+    
+        // Esconde a bandeira
+        if (isPlayer) {
+            directory.setHasUserFlag(true);
+        } else {
+            directory.setHasIAFlag(true);
+        }
+    
+        // Confirma o estado após a alteração
+        System.out.println("✅ Estado atualizado: hasUserFlag = " + directory.hasUserFlag() + ", hasIAFlag = " + directory.hasIAFlag());
+    
+        // Cria o arquivo no sistema
+        createFileInSystem(directory, "flag.txt", isPlayer ? "Bandeira do jogador!" : "Bandeira da IA!");
+        System.out.println((isPlayer ? "Jogador" : "IA") + " escondeu a bandeira no diretório: " + directoryName);
+    
+        return true;
+    }    
+    
+    
+    public boolean hasHiddenFlag() {
+        return hasHiddenFlag(root);
+    }
+    
+    private boolean hasHiddenFlag(Directory directory) {
+        if (directory.hasUserFlag()) {
+            return true;
+        }
+        for (Directory subDirectory : directory.getDirectories()) {
+            if (hasHiddenFlag(subDirectory)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
 }

@@ -3,6 +3,7 @@ package com.bytecrash.terminal;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
+import com.bytecrash.game.CTFManager;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 
 public class TerminalSimulator implements InputProcessor {
@@ -11,6 +12,7 @@ public class TerminalSimulator implements InputProcessor {
     private Label terminalDisplay;
     private String currentInput;
     private final ScrollPane terminalScrollPane;
+    private CTFManager ctfManager = new CTFManager(null, null, null, null);
 
     public TerminalSimulator(CommandHandler commandHandler, ScrollPane terminalScrollPane) {
         this.commandHandler = commandHandler;
@@ -26,9 +28,12 @@ public class TerminalSimulator implements InputProcessor {
     
 
     public void appendToTerminal(String result) {
+        String hostname = ctfManager.isInEnemySystem() ? "enemy" : "player";
         terminalOutput.append(currentInput).append("\n")
                       .append(result).append("\n")
-                      .append("[martins@hacktheflag ")
+                      .append("[")
+                      .append(hostname)
+                      .append("@hacktheflag ")
                       .append(commandHandler.getCurrentDirectoryPath())
                       .append("] $ ");
         currentInput = ""; // Limpa o comando atual
@@ -41,12 +46,11 @@ public class TerminalSimulator implements InputProcessor {
         // Força o scroll para o final
         Gdx.app.postRunnable(() -> {
             if (terminalScrollPane != null) {
-                terminalScrollPane.layout(); // Atualiza o layout
-                terminalScrollPane.scrollTo(0, 0, 0, terminalScrollPane.getScrollHeight()); // Move para o final
+                terminalScrollPane.layout();
+                terminalScrollPane.scrollTo(0, 0, 0, terminalScrollPane.getScrollHeight());
             }
         });
-    }
-    
+    }    
 
     @Override
     public boolean keyTyped(char character) {

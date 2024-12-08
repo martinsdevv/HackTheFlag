@@ -3,8 +3,9 @@ package com.bytecrash.terminal.commands;
 import com.bytecrash.filesystem.Directory;
 import com.bytecrash.filesystem.FileSystem;
 import com.bytecrash.terminal.Command;
+import com.bytecrash.terminal.FileSystemAwareCommand;
 
-public class CdCommand implements Command {
+public class CdCommand implements FileSystemAwareCommand {
     private FileSystem fileSystem;
 
     public CdCommand(FileSystem fileSystem) {
@@ -39,5 +40,10 @@ public class CdCommand implements Command {
     @Override
     public String getName() {
         return "cd";
+    }
+
+    @Override
+    public void setFileSystem(FileSystem fileSystem) {
+        this.fileSystem = fileSystem;
     }
 }

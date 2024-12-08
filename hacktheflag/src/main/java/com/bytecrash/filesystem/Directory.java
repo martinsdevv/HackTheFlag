@@ -5,19 +5,19 @@ import java.util.List;
 
 public class Directory {
     private String name;
-    private Directory parent;  // Novo campo para o diretório pai
+    private Directory parent;
     private List<File> files = new ArrayList<>();
     private List<Directory> directories = new ArrayList<>();
 
     private boolean hasUserFlag = false;
+    private boolean hasIAFlag = false;
 
-    // Construtor atualizado para aceitar o diretório pai
     public Directory(String name, Directory parent) {
         this.name = name;
         this.parent = parent;
+        this.hasUserFlag = false;
     }
 
-    // Construtor alternativo para a raiz (sem pai)
     public Directory(String name) {
         this(name, null);
     }
@@ -26,11 +26,23 @@ public class Directory {
         StringBuilder path = new StringBuilder(name);
         Directory current = parent;
         while (current != null) {
-            path.insert(0, current.name + "/");
+            // ⚠️ Corrigir essa parte: Remova "root" da montagem do caminho
+            if (!current.getName().equalsIgnoreCase("root")) {
+                path.insert(0, current.name + "/");
+            }
             current = current.parent;
         }
         return "/" + path;
     }
+
+    @SuppressWarnings("unlikely-arg-type")
+    public boolean containsFile(String fileName) {
+        if (files == null || files.isEmpty()) {
+            return false;
+        }
+        return files.contains(fileName);
+    }
+    
 
     public String getName() {
         return name;
@@ -54,13 +66,25 @@ public class Directory {
 
     public void addDirectory(Directory directory) {
         directories.add(directory);
+        directory.parent = this; // Atualiza o pai corretamente
     }
 
     public boolean hasUserFlag() {
         return hasUserFlag;
     }
-    
+
     public void setHasUserFlag(boolean hasUserFlag) {
         this.hasUserFlag = hasUserFlag;
     }
+
+    public void setHasIAFlag(boolean hasIAFlag) {
+        this.hasIAFlag = hasIAFlag;
+        System.out.println("🔧 Estado hasIAFlag alterado para: " + this.hasIAFlag + " no diretório: " + this.name);
+    }
+    
+    public boolean hasIAFlag() {
+        System.out.println("📋 Verificando hasIAFlag: " + this.hasIAFlag + " no diretório: " + this.name);
+        return this.hasIAFlag;
+    }
+    
 }
