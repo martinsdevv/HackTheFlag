@@ -3,11 +3,12 @@ package com.bytecrash.terminal;
 import com.bytecrash.filesystem.Directory;
 import com.bytecrash.filesystem.FileSystem;
 import com.bytecrash.game.CTFManager;
+import com.bytecrash.terminal.commands.AlwaysReadyToCry;
 import com.bytecrash.terminal.commands.CatCommand;
 import com.bytecrash.terminal.commands.CdCommand;
 import com.bytecrash.terminal.commands.HelpCommand;
 import com.bytecrash.terminal.commands.HideFlagCommand;
-import com.bytecrash.terminal.commands.JinxCommand;
+import com.bytecrash.terminal.commands.AlwaysReadyToCry;
 import com.bytecrash.terminal.commands.LsCommand;
 import com.bytecrash.terminal.commands.MkdirCommand;
 // import com.bytecrash.terminal.commands.SSHCommand;
@@ -31,7 +32,7 @@ public class CommandHandler {
         registerCommand(new MkdirCommand(ctfManager.getCurrentFileSystem(), ctfManager));
         registerCommand(new HideFlagCommand(ctfManager));
         registerCommand(new HelpCommand(this));
-        registerCommand(new JinxCommand());
+        registerCommand(new AlwaysReadyToCry());
         //registerCommand(new SSHCommand(ctfManager));
     }
 

@@ -6,11 +6,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class JinxCommand implements Command {
+public class AlwaysReadyToCry implements Command {
 
     private final List<String> phrases;
 
-    public JinxCommand() {
+    public AlwaysReadyToCry() {
         this.phrases = new ArrayList<>();
         populatePhrases();
     }
