@@ -32,4 +32,9 @@ public class MkdirCommand implements Command {
     public String getName() {
         return "mkdir";
     }
+
+    @Override
+    public String getDescription() {
+        return "Cria um novo diretorio. Uso: 'mkdir'";
+    }
 }

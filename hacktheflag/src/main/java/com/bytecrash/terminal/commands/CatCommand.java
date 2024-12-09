@@ -63,4 +63,9 @@ public class CatCommand implements FileSystemAwareCommand {
     public void setFileSystem(FileSystem fileSystem) {
         this.fileSystem = fileSystem;
     }
+
+    @Override
+    public String getDescription() {
+        return "Exibe o conteudo de um arquivo. Uso: 'cat <arquivo>'";
+    }
 }

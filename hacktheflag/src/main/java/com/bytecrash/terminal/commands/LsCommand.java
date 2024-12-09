@@ -36,4 +36,9 @@ public class LsCommand implements FileSystemAwareCommand {
     public void setFileSystem(FileSystem fileSystem) {
         this.fileSystem = fileSystem;
     }
+
+    @Override
+    public String getDescription() {
+        return "Lista os arquivos e diretórios no diretório atual. Uso: 'ls'";
+    }
 }

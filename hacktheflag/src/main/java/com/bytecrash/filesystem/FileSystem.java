@@ -208,7 +208,8 @@ public class FileSystem {
             directory = directory.getParent();
         }
     
-        return path.toString().replaceFirst("^" + File.separator, "");
+        return path.toString().replaceFirst("^" + File.separator.replace("\\", "\\\\"), "");
+
     }
     
 

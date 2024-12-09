@@ -45,4 +45,9 @@ public class CdCommand implements FileSystemAwareCommand {
     public void setFileSystem(FileSystem fileSystem) {
         this.fileSystem = fileSystem;
     }
+
+    @Override
+    public String getDescription() {
+        return "Muda para o diretorio especificado. Uso: 'cd <diretorio>'";
+    }
 }

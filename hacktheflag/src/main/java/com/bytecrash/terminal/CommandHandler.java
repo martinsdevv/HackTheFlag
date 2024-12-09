@@ -5,7 +5,9 @@ import com.bytecrash.filesystem.FileSystem;
 import com.bytecrash.game.CTFManager;
 import com.bytecrash.terminal.commands.CatCommand;
 import com.bytecrash.terminal.commands.CdCommand;
+import com.bytecrash.terminal.commands.HelpCommand;
 import com.bytecrash.terminal.commands.HideFlagCommand;
+import com.bytecrash.terminal.commands.JinxCommand;
 import com.bytecrash.terminal.commands.LsCommand;
 import com.bytecrash.terminal.commands.MkdirCommand;
 // import com.bytecrash.terminal.commands.SSHCommand;
@@ -28,7 +30,15 @@ public class CommandHandler {
         registerCommand(new CatCommand(ctfManager.getCurrentFileSystem(), ctfManager));
         registerCommand(new MkdirCommand(ctfManager.getCurrentFileSystem(), ctfManager));
         registerCommand(new HideFlagCommand(ctfManager));
+        registerCommand(new HelpCommand(this));
+        registerCommand(new JinxCommand());
         //registerCommand(new SSHCommand(ctfManager));
+    }
+
+    public Map<String, Command> getCommands() {
+        Map<String, Command> visibleCommands = new HashMap<>(commands);
+        visibleCommands.remove("jinx");
+        return visibleCommands;
     }
 
     public void registerCommand(Command command) {

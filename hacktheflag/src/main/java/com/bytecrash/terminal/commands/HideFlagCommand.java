@@ -31,4 +31,9 @@ public class HideFlagCommand implements Command {
     public String getName() {
         return "hideflag";
     }
+
+    @Override
+    public String getDescription() {
+        return "Esconde a bandeira no diretorio especificado. Uso: 'hideflag <diretorio>'";
+    }
 }
