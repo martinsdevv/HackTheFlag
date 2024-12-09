@@ -3,7 +3,6 @@ package com.bytecrash.terminal.commands;
 import com.bytecrash.filesystem.FileSystem;
 import com.bytecrash.filesystem.Directory;
 import com.bytecrash.filesystem.File;
-import com.bytecrash.terminal.Command;
 import com.bytecrash.terminal.FileSystemAwareCommand;
 
 public class LsCommand implements FileSystemAwareCommand {
@@ -25,7 +24,7 @@ public class LsCommand implements FileSystemAwareCommand {
             output.append("file ").append(file.getName()).append("\n");
         }
 
-        return output.toString();  // Retorna a saída como uma String
+        return output.toString();
     }
 
     @Override

@@ -1,0 +1,1 @@
+A bandeira está escondida em /usr/share.

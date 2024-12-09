@@ -8,7 +8,7 @@ import com.bytecrash.terminal.commands.CdCommand;
 import com.bytecrash.terminal.commands.HideFlagCommand;
 import com.bytecrash.terminal.commands.LsCommand;
 import com.bytecrash.terminal.commands.MkdirCommand;
-import com.bytecrash.terminal.commands.SSHCommand;
+// import com.bytecrash.terminal.commands.SSHCommand;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,28 +22,27 @@ public class CommandHandler {
         registerDefaultCommands();
     }
 
-    /**
-     * Registra os comandos padrão no handler.
-     */
     private void registerDefaultCommands() {
         registerCommand(new LsCommand(ctfManager.getCurrentFileSystem()));
         registerCommand(new CdCommand(ctfManager.getCurrentFileSystem()));
         registerCommand(new CatCommand(ctfManager.getCurrentFileSystem(), ctfManager));
-        registerCommand(new MkdirCommand(ctfManager.getCurrentFileSystem()));
+        registerCommand(new MkdirCommand(ctfManager.getCurrentFileSystem(), ctfManager));
         registerCommand(new HideFlagCommand(ctfManager));
-        registerCommand(new SSHCommand(ctfManager));
+        //registerCommand(new SSHCommand(ctfManager));
     }
 
-    /**
-     * Permite registrar comandos customizados.
-     */
     public void registerCommand(Command command) {
         commands.put(command.getName(), command); 
     }
-
-    /**
-     * Executa o comando solicitado pelo jogador.
-     */
+    
+    public void setFileSystem(FileSystem fileSystem) {
+        commands.values().forEach(command -> {
+            if (command instanceof FileSystemAwareCommand) {
+                ((FileSystemAwareCommand) command).setFileSystem(fileSystem);
+            }
+        });
+    }
+    
     public String executeCommand(String commandLine) {
         if (commandLine == null || commandLine.isBlank()) {
             return "Comando vazio. Digite um comando válido.";
@@ -63,23 +62,19 @@ public class CommandHandler {
             }
         }        
     
-        // Obtém o comando registrado
         Command command = commands.get(commandName);
         if (command == null) {
             return "Comando não reconhecido: " + commandName;
         }
     
         try {
-            // Atualiza o FileSystem dinâmico antes de executar o comando
             FileSystem activeFileSystem = ctfManager.getCurrentFileSystem();
             if (command instanceof FileSystemAwareCommand) {
                 ((FileSystemAwareCommand) command).setFileSystem(activeFileSystem);
             }
     
-            // Executa o comando e captura a resposta
             String commandOutput = command.execute(argument);
     
-            // Garante que nunca seja nulo
             if (commandOutput == null || commandOutput.isBlank()) {
                 return "Comando executado, mas sem saída.";
             }
@@ -90,10 +85,6 @@ public class CommandHandler {
         }
     }    
     
-
-    /**
-     * Trata comandos especiais como "skip" ou comandos que precisam de lógica extra.
-     */
     private boolean handleSpecialCommands(String commandName, String argument) {
         switch (commandName) {
             case "skip":
@@ -111,9 +102,6 @@ public class CommandHandler {
         }
     }
 
-    /**
-     * Executa um comando registrado no mapa de comandos.
-     */
     private String executeRegisteredCommand(String commandName, String argument) {
         Command command = commands.get(commandName);
         if (command == null) {
@@ -156,7 +144,7 @@ public class CommandHandler {
     public String getCurrentDirectoryPath() {
         FileSystem currentFileSystem = ctfManager.getCurrentFileSystem();
         if (currentFileSystem == null) {
-            return "/"; // Retorna uma string padrão quando o sistema de arquivos está nulo
+            return "/";
         }
     
         Directory current = currentFileSystem.getCurrentDirectory();

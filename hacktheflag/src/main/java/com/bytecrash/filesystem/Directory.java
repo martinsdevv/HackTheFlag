@@ -26,7 +26,7 @@ public class Directory {
         StringBuilder path = new StringBuilder(name);
         Directory current = parent;
         while (current != null) {
-            // ⚠️ Corrigir essa parte: Remova "root" da montagem do caminho
+            // Corrigir essa parte: Remova "root" da montagem do caminho
             if (!current.getName().equalsIgnoreCase("root")) {
                 path.insert(0, current.name + "/");
             }
@@ -41,6 +41,15 @@ public class Directory {
             return false;
         }
         return files.contains(fileName);
+    }
+    
+    public void removeFile(File file) {
+        if (files.contains(file)) {
+            files.remove(file);
+            System.out.println("-> Arquivo removido: " + file.getName() + " do diretório " + getPath());
+        } else {
+            System.out.println("!!! Arquivo não encontrado: " + file.getName());
+        }
     }
     
 
@@ -66,7 +75,7 @@ public class Directory {
 
     public void addDirectory(Directory directory) {
         directories.add(directory);
-        directory.parent = this; // Atualiza o pai corretamente
+        directory.parent = this;
     }
 
     public boolean hasUserFlag() {
@@ -79,11 +88,11 @@ public class Directory {
 
     public void setHasIAFlag(boolean hasIAFlag) {
         this.hasIAFlag = hasIAFlag;
-        System.out.println("🔧 Estado hasIAFlag alterado para: " + this.hasIAFlag + " no diretório: " + this.name);
+        System.out.println("-> Estado hasIAFlag alterado para: " + this.hasIAFlag + " no diretório: " + this.name);
     }
     
     public boolean hasIAFlag() {
-        System.out.println("📋 Verificando hasIAFlag: " + this.hasIAFlag + " no diretório: " + this.name);
+        System.out.println("-> Verificando hasIAFlag: " + this.hasIAFlag + " no diretório: " + this.name);
         return this.hasIAFlag;
     }
     

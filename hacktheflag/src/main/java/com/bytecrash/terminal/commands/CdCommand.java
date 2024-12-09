@@ -2,7 +2,6 @@ package com.bytecrash.terminal.commands;
 
 import com.bytecrash.filesystem.Directory;
 import com.bytecrash.filesystem.FileSystem;
-import com.bytecrash.terminal.Command;
 import com.bytecrash.terminal.FileSystemAwareCommand;
 
 public class CdCommand implements FileSystemAwareCommand {

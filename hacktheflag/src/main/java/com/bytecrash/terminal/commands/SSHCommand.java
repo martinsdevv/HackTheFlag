@@ -1,3 +1,4 @@
+/*
 package com.bytecrash.terminal.commands;
 
 import com.bytecrash.terminal.Command;
@@ -29,3 +30,4 @@ public class SSHCommand implements Command {
         return "ssh";
     }
 }
+*/

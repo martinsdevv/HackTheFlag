@@ -8,11 +8,10 @@ public class DesktopLauncher {
     public static void main(String[] arg) {
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
 
-        // Define a resolução inicial
         config.setTitle("HackTheFlag");
-        config.setWindowedMode(1280, 720); // Largura e altura (ajuste conforme necessário)
-        config.setResizable(true); // Define se a janela pode ser redimensionada
-        config.useVsync(true); // Habilita VSync para evitar tearing gráfico
+        config.setWindowedMode(1280, 720);
+        config.setResizable(true);
+        config.useVsync(true);
 
         new Lwjgl3Application(new MainGame(), config);
     }

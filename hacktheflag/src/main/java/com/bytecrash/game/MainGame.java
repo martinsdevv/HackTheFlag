@@ -5,25 +5,21 @@ import java.util.List;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.bytecrash.terminal.CommandHandler;
 import com.bytecrash.terminal.TerminalSimulator;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.scenes.scene2d.ui.TextArea;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.bytecrash.filesystem.FileSystem;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle;
 
 
 public class MainGame extends ApplicationAdapter {
@@ -40,7 +36,6 @@ public class MainGame extends ApplicationAdapter {
 
     private Stage stage;
 
-    private TextArea terminalTextArea;
     private TerminalSimulator terminalSimulator;
     private Skin skin;
 
@@ -57,19 +52,20 @@ public class MainGame extends ApplicationAdapter {
     private static final int BLACK_AREA_HEIGHT = 1062;
 
     private ScrollPane logScrollPane;
-    private Label playerTimerLabel; // Label para o timer do jogador
+    private Label playerTimerLabel;
     private Label logLabel;
-    private float timeAccumulator = 0; // Acumula o tempo decorrido para reduzir o cronômetro
+    private float timeAccumulator = 0;
     private List<String> logs = new ArrayList<>();
 
     FileSystem playerFileSystem = new FileSystem("player");
-    FileSystem machineFileSystem = new FileSystem("machine");
+    //FileSystem machineFileSystem = new FileSystem("machine");
+
+    private boolean gameEnded = false;
 
     private CTFManager ctfManager;
 
     @Override
     public void create() {
-        // Inicializa os recursos
         batch = new SpriteBatch();
         backgroundTexture = new Texture(Gdx.files.internal("assets/interface/prompt.png"));
         terminalTexture = new Texture(Gdx.files.internal("assets/interface/terminal.png"));
@@ -81,49 +77,35 @@ public class MainGame extends ApplicationAdapter {
             new TextureAtlas(Gdx.files.internal("assets/skins/uiskin.atlas"))
         );
 
-        ctfManager = new CTFManager(playerFileSystem, machineFileSystem, stage, this);
+        ctfManager = new CTFManager(playerFileSystem, stage, this);
 
         
         CommandHandler commandHandler = new CommandHandler(ctfManager);
 
-        // Configura o viewport
         viewport = new FitViewport(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
         viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
 
-        // Configura o Stage para os botões
         stage = new Stage(viewport, batch);
         Gdx.input.setInputProcessor(stage);
 
         // Criar botões
-        ImageButton hackButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(hackButtonTexture)));
-        ImageButton menuButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(menuButtonTexture)));
-        ImageButton logoutButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(logoutButtonTexture)));
+        // ImageButton hackButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(hackButtonTexture)));
+        // ImageButton menuButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(menuButtonTexture)));
+        // ImageButton logoutButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(logoutButtonTexture)));
 
-        // Escala e tamanho dos botões
-        float scale = 4.5f; // Ajuste de escala (proporção dos botões)
-        float baseButtonWidth = 96f; // Largura base dos botões
-        float baseButtonHeight = 32f; // Altura base dos botões
-        float buttonWidth = baseButtonWidth * scale; // Largura escalada
-        float buttonHeight = baseButtonHeight * scale; // Altura escalada
-
-        hackButton.setSize(buttonWidth, buttonHeight);
-        menuButton.setSize(buttonWidth, buttonHeight);
-        logoutButton.setSize(buttonWidth, buttonHeight);
-
-        // Posicionamento fixo na área lateral
-        float startX = BLACK_AREA_X / 2f - buttonWidth / 2f; // Centralizado na área preta lateral
-        float startY = BLACK_AREA_HEIGHT - 300f; // Posição inicial (abaixo de FLAGS)
-        float fixedSpacing = 20f; // Espaçamento fixo entre botões
+        // hackButton.setSize(buttonWidth, buttonHeight);
+        // menuButton.setSize(buttonWidth, buttonHeight);
+        // logoutButton.setSize(buttonWidth, buttonHeight);
 
         // Posicionar botões
-        hackButton.setPosition(startX, startY);
-        menuButton.setPosition(startX, startY - buttonHeight - fixedSpacing);
-        logoutButton.setPosition(startX, startY - 2 * (buttonHeight + fixedSpacing));
+        //hackButton.setPosition(startX, startY);
+        // menuButton.setPosition(startX, startY - buttonHeight - fixedSpacing);
+        // logoutButton.setPosition(startX, startY - 2 * (buttonHeight + fixedSpacing));
 
         // Adicionar botões ao Stage
-        stage.addActor(hackButton);
-        stage.addActor(menuButton);
-        stage.addActor(logoutButton);
+        // stage.addActor(hackButton);
+        // stage.addActor(menuButton);
+        // stage.addActor(logoutButton);
 
         // Configura o Label (terminal esquerdo)
         float padding = 10;
@@ -132,37 +114,49 @@ public class MainGame extends ApplicationAdapter {
         float terminalWidth = (BLACK_AREA_WIDTH - 3 * padding) / 2;
         float terminalHeight = BLACK_AREA_HEIGHT - 2 * padding;
 
-        Label terminalLabel = new Label("", skin);
-        terminalLabel.setWrap(true); // Permite quebra de linha no texto
+        Label.LabelStyle terminalStyle = new Label.LabelStyle();
+        terminalStyle.font = skin.getFont("default-font");
+        terminalStyle.fontColor = new Color(0, 1, 0, 1);
 
-        // Configura a tabela para ajustar dinamicamente o tamanho
+
+        Label terminalLabel = new Label("", terminalStyle);
+        terminalLabel.setWrap(true);
+
         Table terminalTable = new Table();
         terminalTable.top().left(); 
         terminalTable.add(terminalLabel).width(terminalWidth).expandX().fillX().pad(10);
 
-        // Configuração do ScrollPane
         terminalScrollPane = new ScrollPane(terminalTable, skin);
         terminalScrollPane.setSize(terminalWidth, terminalHeight);
         terminalScrollPane.setPosition(terminalX, terminalY);
-        terminalScrollPane.setScrollingDisabled(true, false); // Apenas rolagem vertical
-        terminalScrollPane.setFlickScroll(false); // Evita comportamento inesperado
+        terminalScrollPane.setScrollingDisabled(true, false);
+        terminalScrollPane.setFlickScroll(false);
         terminalScrollPane.setSmoothScrolling(false);
 
-        // Adicionar o ScrollPane ao Stage
         stage.addActor(terminalScrollPane);
 
-        // Configurar o TerminalSimulator com o Label
         terminalSimulator = new TerminalSimulator(commandHandler, terminalScrollPane);
-        terminalSimulator.setTerminalDisplay(terminalLabel); // Passar o Label como display do terminal
+        terminalSimulator.setTerminalDisplay(terminalLabel);
         Gdx.input.setInputProcessor(terminalSimulator);
 
-        playerTimerLabel = new Label("Jogador: 10:00", skin);
-        playerTimerLabel.setPosition(10, VIRTUAL_HEIGHT - 50);
+        Label.LabelStyle timerStyle = new Label.LabelStyle();
+        timerStyle.font = skin.getFont("default-font");
+        timerStyle.fontColor = new Color(1, 0, 0, 1);
+
+        playerTimerLabel = new Label("10:00", timerStyle);
+        float timerX = BLACK_AREA_X / 2.3f - playerTimerLabel.getWidth() / 2f;
+        float timerY = BLACK_AREA_HEIGHT - 215f;
+        playerTimerLabel.setPosition(timerX, timerY);
+        playerTimerLabel.setFontScale(1.8f);
         stage.addActor(playerTimerLabel);
 
         // LOGS
 
-        logLabel = new Label("LOGS\n", skin);
+        Label.LabelStyle logStyle = new Label.LabelStyle();
+        logStyle.font = skin.getFont("default-font");
+        logStyle.fontColor = new Color(0, 1, 0, 1);
+
+        logLabel = new Label("LOGS\n", logStyle);
         logLabel.setWrap(true);
 
         Table logTable = new Table();
@@ -170,7 +164,7 @@ public class MainGame extends ApplicationAdapter {
         logTable.add(logLabel).expandX().fillX();
 
         logScrollPane = new ScrollPane(logTable, skin);
-        logScrollPane.setSize(400, 500); // Tamanho do log
+        logScrollPane.setSize(400, 500);
         logScrollPane.setPosition(VIRTUAL_WIDTH - 815, VIRTUAL_HEIGHT - 530);
         stage.addActor(logScrollPane);
 
@@ -182,13 +176,39 @@ public class MainGame extends ApplicationAdapter {
         viewport.update(width, height, true);
     }
 
+    public void showEndScreen(String message) {
+        gameEnded = true;
+    
+        stage.clear();
+        Label.LabelStyle endStyle = new Label.LabelStyle();
+        endStyle.font = skin.getFont("default-font");
+        endStyle.fontColor = Color.WHITE;
+    
+        Label endLabel = new Label(message, endStyle);
+        endLabel.setFontScale(2);
+        endLabel.setPosition(
+            (VIRTUAL_WIDTH - endLabel.getPrefWidth() * endLabel.getFontScaleX()) / 2f, 
+            (VIRTUAL_HEIGHT - endLabel.getPrefHeight() * endLabel.getFontScaleY()) / 2f
+        );
+    
+        stage.addActor(endLabel);
+    }
+    
+
     @Override
     public void render() {
+
+        if (gameEnded) {
+            Gdx.gl.glClearColor(0, 0, 0, 1);
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+            stage.act();
+            stage.draw();
+            return;
+        }
 
         float deltaTime = Gdx.graphics.getDeltaTime();
         timeAccumulator += deltaTime;
 
-        // Limpa a tela com a cor preta
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
@@ -198,31 +218,27 @@ public class MainGame extends ApplicationAdapter {
                 updateTimerLabel();
                 if (ctfManager.getPlayerTimeRemaining() <= 0) {
                     addLog("Tempo do jogador esgotado!");
-                    ctfManager.switchTurn(); // Força a troca para a IA
+                    ctfManager.switchTurn();
                 }
             } else {
-                ctfManager.incrementAITime(); // Atualiza o tempo e comandos da IA
+                ctfManager.incrementAITime();
             }
     
-            timeAccumulator = 0; // Reseta acumulador
+            timeAccumulator = 0;
         }
 
-        // Configura o SpriteBatch para desenhar os elementos do jogo
         batch.setProjectionMatrix(viewport.getCamera().combined);
         batch.begin();
         
 
-        // Renderiza o background
         batch.draw(backgroundTexture, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 
-        // Calcula as dimensões do terminal esquerdo e direito
         int padding = 10;
         float terminalX = BLACK_AREA_X + padding;
         float terminalY = BLACK_AREA_Y + padding;
         float terminalWidth = (BLACK_AREA_WIDTH - 3 * padding) / 2;
         float terminalHeight = BLACK_AREA_HEIGHT - 2 * padding;
 
-        // Renderiza o terminal direito (dividido em duas partes)
         float rightTerminalX = terminalX + terminalWidth + padding;
         float rightTerminalHeight = (terminalHeight - padding) / 2;
 
@@ -232,13 +248,11 @@ public class MainGame extends ApplicationAdapter {
         logScrollPane.layout();
         logScrollPane.setScrollY(logScrollPane.getMaxY());
 
-        batch.end(); // Finaliza o SpriteBatch antes de desenhar o Stage
+        batch.end();
 
-        // Atualiza e desenha os elementos da interface (Stage)
         stage.act(deltaTime);
         stage.draw();
 
-        // Gerencia o scroll do terminal
         if (shouldScroll && terminalScrollPane != null) {
             terminalScrollPane.layout();
             terminalScrollPane.setScrollY(terminalScrollPane.getMaxY());
@@ -247,7 +261,7 @@ public class MainGame extends ApplicationAdapter {
     }
 
     private void updateTimerLabel() {
-        playerTimerLabel.setText("Jogador: " + formatTime(ctfManager.getPlayerTimeRemaining()));
+        playerTimerLabel.setText(formatTime(ctfManager.getPlayerTimeRemaining()));
     }
     
     private String formatTime(int totalSeconds) {
@@ -265,7 +279,6 @@ public class MainGame extends ApplicationAdapter {
         logLabel.setText(logText.toString());
 
         if (message.contains("venceu o jogo")) {
-            // Bloquear ações futuras ou exibir mensagem de finalização
             Gdx.app.exit();
         }
     }

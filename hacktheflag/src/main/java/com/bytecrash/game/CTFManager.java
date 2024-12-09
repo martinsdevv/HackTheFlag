@@ -9,17 +9,12 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 
 public class CTFManager {
     private final FileSystem playerFileSystem;
-    private final FileSystem enemyFileSystem;
     private final CommandHandler commandHandler;
     private final EnemyAI enemyAI;
 
-    private static final int IA_COMMAND_PADDING = 5;
     private static final int MAX_TURNS = 20;
-    private static final int MAX_COMMANDS = 5;
 
     private FileSystem currentFileSystem;
-
-    private int aiTimeCounter = 0;
 
     private boolean isPlayerTurn = true;
     private boolean setupPhase = true;
@@ -30,6 +25,8 @@ public class CTFManager {
     private int playerTimeRemaining = 600;
     private int playerTurns = 0;
     private int enemyTurns = 0;
+    private int enemyMaxCommands = 5;
+    private int playerMaxCommands = 5;
 
     private final MainGame mainGame;
 
@@ -38,12 +35,13 @@ public class CTFManager {
 
     LlamaAPI llamaAPI = new LlamaAPI("http://localhost:1234/v1/chat/completions");
 
-    public CTFManager(FileSystem playerFileSystem, FileSystem enemyFileSystem, Stage stage, MainGame mainGame) {
+    public CTFManager(FileSystem playerFileSystem, Stage stage, MainGame mainGame) {
         this.playerFileSystem = playerFileSystem;
-        this.enemyFileSystem = enemyFileSystem;
         this.commandHandler = new CommandHandler(this);
-        this.enemyAI = new EnemyAI(enemyFileSystem, commandHandler, llamaAPI, this);
+        this.enemyAI = new EnemyAI(playerFileSystem, commandHandler, llamaAPI, this);
         this.mainGame = mainGame;
+
+        this.currentFileSystem = playerFileSystem;
     }
 
     public void startSetupPhase() {
@@ -61,31 +59,39 @@ public class CTFManager {
     public boolean hideFlag(Directory directoryPath) {
         if (!setupPhase) {
             mainGame.addLog("Erro: Não é permitido esconder a bandeira fora da fase de configuração.");
-            System.out.println("⚠️ Tentativa de esconder bandeira fora da fase de configuração.");
-            return false; // Bloqueia o comando fora da fase de configuração
+            System.out.println("!!! Tentativa de esconder bandeira fora da fase de configuração.");
+            return false;
         }
     
         boolean success = false;
     
         if (isPlayerTurn) {
+            if (playerFileSystem.findFile("player.flag") != null) {
+                mainGame.addLog("Erro: O jogador já escondeu sua bandeira!");
+                return false;
+            }
             success = playerFileSystem.hideFlag(directoryPath.getName(), true);
             if (success) {
                 playerFlagHidden = true;
-                playerFileSystem.createFileInSystem(directoryPath, "playerFlag.txt", "Jogador escondeu a bandeira!");
-                System.out.println("Jogador escondeu a bandeira em: " + directoryPath);
+                playerFileSystem.createFileInSystem(directoryPath, "player.flag", "Jogador escondeu a bandeira!");
+                System.out.println("-> Jogador escondeu a bandeira em: " + directoryPath.getPath());
             }
         } else {
-            success = enemyFileSystem.hideFlag(directoryPath.getName(), false);
+            if (playerFileSystem.findFile("machine.flag") != null) {
+                mainGame.addLog("Erro: A IA já escondeu sua bandeira!");
+                return false;
+            }
+            success = playerFileSystem.hideFlag(directoryPath.getName(), false);
             if (success) {
                 enemyFlagHidden = true;
-                enemyFileSystem.createFileInSystem(directoryPath, "machineFlag.txt", "IA escondeu a bandeira!");
-                System.out.println("IA escondeu a bandeira em: " + directoryPath);
+                playerFileSystem.createFileInSystem(directoryPath, "machine.flag", "IA escondeu a bandeira!");
+                System.out.println("-> IA escondeu a bandeira em: " + directoryPath.getPath());
             }
         }
     
         if (success) {
-            checkEndOfSetupPhase(); // Verifica se ambos esconderam a bandeira
-            switchTurn(); // Troca o turno automaticamente
+            checkEndOfSetupPhase();
+            switchTurn();
         }
     
         return success;
@@ -93,14 +99,37 @@ public class CTFManager {
 
     private void checkEndOfSetupPhase() {
         if (playerFlagHidden && enemyFlagHidden) {
-            System.out.println("🚀 Fase de configuração finalizada. O jogo começou!");
-            endSetupPhase(); // Chama explicitamente o fim da fase de configuração
+            System.out.println("-> Fase de configuração finalizada. O jogo começou!");
+            endSetupPhase();
         } else if (playerFlagHidden && !enemyFlagHidden && isPlayerTurn) {
-            System.out.println("⚠️ Jogador escondeu a bandeira. Agora é a vez da IA.");
-            switchTurn(); // Troca para o turno da IA
+            System.out.println("!!! Jogador escondeu a bandeira. Agora é a vez da IA.");
+            switchTurn();
         }
-    }    
+    }   
     
+    public void incrementPlayerCommands(int additionalCommands) {
+        playerMaxCommands += additionalCommands;
+        mainGame.addLog("Player usou um poder!");
+        System.out.println("-> Jogador agora possui " + playerCommands + " movimentos neste turno.");
+    }
+    
+    public void incrementEnemyCommands(int additionalCommands) {
+        enemyMaxCommands += additionalCommands;
+        mainGame.addLog("Inimigo usou um poder!");
+        System.out.println("-> IA agora possui " + enemyCommands + " movimentos neste turno.");
+    }
+
+    public void spawnPowersAtTurnStart() {
+        String powerName = "pow_extra_moves.sh";
+        String powerContent = "Este script concede 5 movimentos extras!";
+        
+        String playerSpawnLocation = playerFileSystem.spawnPowerFile(powerName, powerContent);
+        System.out.println("-> Poder criado para o jogador em: " + playerSpawnLocation);
+    
+        String enemySpawnLocation = playerFileSystem.spawnPowerFile(powerName, powerContent);
+        System.out.println("-> Poder criado para a IA em: " + enemySpawnLocation);
+    }    
+
     public void switchTurn() {
         if (setupPhase) {
             if (isPlayerTurn && playerFlagHidden) {
@@ -116,10 +145,10 @@ public class CTFManager {
         }
     
         if (isPlayerTurn) {
-            playerCommands = 0; // Reseta comandos do jogador
+            playerCommands = 0;
             playerTurns++;
         } else {
-            enemyCommands = 0; // Reseta comandos da IA
+            enemyCommands = 0;
             enemyTurns++;
         }
     
@@ -151,13 +180,14 @@ public class CTFManager {
 
     public void startPlayerTurn() {
         isPlayerTurn = true;
+        spawnPowersAtTurnStart();
         System.out.println("Turno do jogador iniciado.");
     }
 
     public void startEnemyTurn() {
         System.out.println("Turno da IA iniciado.");
+        spawnPowersAtTurnStart();
     
-        // Reinicia o contador de comandos da IA
         enemyCommands = 0; 
     
         if (setupPhase) {
@@ -173,7 +203,6 @@ public class CTFManager {
             return;
         }
     
-        // Executa múltiplos comandos da IA em sequência
         executeAICommands();
     }
     
@@ -181,7 +210,7 @@ public class CTFManager {
     public void updateTime(int deltaTime) {
         if (setupPhase) return;
     
-        playerTimeRemaining -= deltaTime; // Decrementa o tempo, em vez de sobrescrevê-lo
+        playerTimeRemaining -= deltaTime;
     
         if (playerTimeRemaining <= 0) {
             System.out.println("Tempo do jogador esgotado.");
@@ -190,15 +219,15 @@ public class CTFManager {
     }
 
     public void incrementAITime() {
-        if (isPlayerTurn || setupPhase) return; // IA só age no turno dela e fora da fase de setup
+        if (isPlayerTurn || setupPhase) return;
     
-        if (enemyCommands < MAX_COMMANDS) {
-            executeAICommands(); // Executa comandos enquanto a IA ainda tem ações disponíveis
+        if (enemyCommands < enemyMaxCommands) {
+            executeAICommands();
         }
     
-        if (enemyCommands >= MAX_COMMANDS) {
+        if (enemyCommands >= enemyMaxCommands) {
             mainGame.addLog("IA completou seu turno.");
-            switchTurn(); // Finaliza o turno da IA
+            switchTurn();
         }
     }
     
@@ -215,16 +244,16 @@ public class CTFManager {
             return false;
         }
     
-        if (playerCommands >= MAX_COMMANDS) {
+        if (playerCommands >= playerMaxCommands) {
             mainGame.addLog("Limite de comandos do jogador atingido neste turno!");
-            switchTurn(); // Troca o turno
+            switchTurn();
             return false;
         }
     
         playerCommands++;
         mainGame.addLog("Comando do jogador: " + command);
     
-        if (playerCommands >= MAX_COMMANDS) {
+        if (playerCommands >= playerMaxCommands) {
             mainGame.addLog("Limite de comandos do jogador atingido! Turno encerrado.");
             switchTurn();
         }
@@ -238,18 +267,18 @@ public class CTFManager {
             return false;
         }
     
-        if (enemyCommands >= MAX_COMMANDS) {
+        if (enemyCommands >= enemyMaxCommands) {
             mainGame.addLog("Limite de comandos da IA atingido neste turno.");
             return false;
         }
     
         enemyCommands++;
         mainGame.addLog("IA executou o comando: " + command);
-        System.out.println("Comando atual da IA: " + enemyCommands + "/" + MAX_COMMANDS);
+        System.out.println("Comando atual da IA: " + enemyCommands + "/" + enemyMaxCommands);
     
-        if (enemyCommands >= MAX_COMMANDS) {
+        if (enemyCommands >= enemyMaxCommands) {
             mainGame.addLog("IA atingiu o limite de comandos neste turno. Turno encerrado.");
-            return false; // Indica que o turno acabou
+            return false;
         }
     
         return true;
@@ -257,10 +286,9 @@ public class CTFManager {
     
     
     private void executeAICommands() {
-        System.out.println("🤖 IA começando a executar comandos...");
+        System.out.println("-> IA começando a executar comandos...");
     
-        while (enemyCommands < MAX_COMMANDS) {
-            // Solicita à IA que execute um comando
+        while (enemyCommands < enemyMaxCommands) {
             boolean success = enemyAI.performAction();
     
             if (!success) {
@@ -269,19 +297,16 @@ public class CTFManager {
                 mainGame.addLog("IA completou o comando com sucesso.");
             }
     
-            // Incrementa o contador após cada comando bem-sucedido
             enemyCommands++;
-            System.out.println("🤖 Comando da IA executado. Total: " + enemyCommands + "/" + MAX_COMMANDS);
+            System.out.println("-> Comando da IA executado. Total: " + enemyCommands + "/" + enemyMaxCommands);
     
-            // Verifica se atingiu o limite de comandos
-            if (enemyCommands >= MAX_COMMANDS) {
+            if (enemyCommands >= enemyMaxCommands) {
                 break;
             }
         }
     
-        // Após executar os comandos, encerra o turno
-        System.out.println("🤖 IA atingiu o limite de comandos para este turno.");
-        switchTurn(); // Alterna para o próximo turno
+        System.out.println("-> IA atingiu o limite de comandos para este turno.");
+        switchTurn();
     }
     
     
@@ -290,50 +315,57 @@ public class CTFManager {
     }
 
     public FileSystem getCurrentFileSystem() {
-        if (isInEnemySystem) {
-            return enemyFileSystem; // Garante que o FileSystem inimigo será retornado
-        } else {
-            return playerFileSystem; // Garante que o FileSystem do jogador será retornado
-        }
-    }
+        return playerFileSystem;
+    }    
     
-
+    /* 
     public void connectToEnemySystem() {
         if (isInEnemySystem) {
             System.out.println("⚠️ Você já está no sistema de arquivos inimigo.");
             return;
         }
         isInEnemySystem = true;
-        currentFileSystem = enemyFileSystem; // Troca para o sistema inimigo
-        System.out.println("🛠 Conectado ao sistema inimigo.");
+        currentFileSystem = enemyFileSystem;
+        System.out.println("🛠 Conectado ao sistema de arquivos inimigo.");
     }
-
+    
     public void exitEnemySystem() {
         if (!isInEnemySystem) {
             System.out.println("⚠️ Você já está no seu sistema de arquivos.");
             return;
         }
         isInEnemySystem = false;
-        currentFileSystem = playerFileSystem; // Troca de volta para o sistema do jogador
-        System.out.println("🛠 Desconectado do sistema inimigo.");
-    }
+        currentFileSystem = playerFileSystem;
+        System.out.println("🛠 Desconectado do sistema de arquivos inimigo. Voltando ao sistema do jogador.");
+    }    
+
+    */
 
     public void declareVictory(String winner) {
         mainGame.addLog("🎉 " + winner + " venceu o jogo!");
-        endGame(); // Finaliza o jogo
+        endGame();
     }
     
 
     public boolean allFlagsHidden() {
-        return playerFileSystem.hasHiddenFlag() && enemyFileSystem.hasHiddenFlag();
+        boolean playerFlagFound = playerFileSystem.findFile("player.flag") != null;
+        boolean machineFlagFound = playerFileSystem.findFile("machine.flag") != null;
+    
+        return playerFlagFound && machineFlagFound;
     }
+
+    public void endGameWithFlag(String flagName, String winner) {
+        mainGame.showEndScreen("Bandeira encontrada: " + flagName + "\nObrigado por jogar!\nVencedor: " + winner);
+    }
+    
+    
 
     public FileSystem getPlayerFileSystem() {
         return playerFileSystem;
     }
 
     public FileSystem getEnemyFileSystem() {
-        return enemyFileSystem;
+        return playerFileSystem;
     }
 
     public boolean isSetupPhase() {

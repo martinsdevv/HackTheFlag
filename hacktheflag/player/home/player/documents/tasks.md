@@ -1,0 +1,2 @@
+- Completar o tutorial
+- Defender o sistema

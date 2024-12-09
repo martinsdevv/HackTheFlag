@@ -1,0 +1,1 @@
+Inimigo: Esconda sua bandeira antes do jogador encontrá-la.

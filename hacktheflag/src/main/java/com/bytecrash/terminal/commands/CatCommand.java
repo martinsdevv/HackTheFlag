@@ -2,9 +2,7 @@ package com.bytecrash.terminal.commands;
 
 import com.bytecrash.filesystem.FileSystem;
 import com.bytecrash.game.CTFManager;
-import com.bytecrash.terminal.Command;
 import com.bytecrash.terminal.FileSystemAwareCommand;
-import com.bytecrash.filesystem.File;
 
 public class CatCommand implements FileSystemAwareCommand {
     private FileSystem fileSystem;
@@ -17,27 +15,43 @@ public class CatCommand implements FileSystemAwareCommand {
 
     @Override
     public String execute(String argument) {
-        if (argument == null || argument.isEmpty()) {
+        if (argument == null || argument.trim().isEmpty()) {
             return "Uso: cat <arquivo>";
         }
 
-        File file = fileSystem.findFile(argument);
+        com.bytecrash.filesystem.File file = fileSystem.findFile(argument);
         if (file == null) {
             return "Arquivo não encontrado: " + argument;
         }
 
-        // Verificar se o arquivo é a bandeira inimiga
-        if (argument.equals("flag.txt")) {
-            if (ctfManager.isInEnemySystem()) {
-                ctfManager.declareVictory("Jogador");
-                return "🎉 Você encontrou a bandeira inimiga! Você venceu o jogo!";
-            } else if (!ctfManager.isPlayerTurn()) {
-                ctfManager.declareVictory("IA");
-                return "A IA encontrou sua bandeira. Você perdeu o jogo.";
-            }
+        if (file.getName().startsWith("pow_")) {
+            activatePower(file);
+            fileSystem.getCurrentDirectory().removeFile(file);
+            return "✨ Poder ativado: " + file.getName();
+        }
+
+        if (file.getName().endsWith(".flag")) {
+            String winner = ctfManager.isPlayerTurn() ? "Jogador" : "IA";
+            ctfManager.endGameWithFlag(file.getName(), winner);
+            return "🏳️ Bandeira encontrada: " + file.getName();
         }
 
         return file.getContent();
+    }
+
+    private void activatePower(com.bytecrash.filesystem.File powerFile) {
+        String powerName = powerFile.getName();
+    
+        if (powerName.equals("pow_extra_moves.sh")) {
+            if (ctfManager.isPlayerTurn()) {
+                ctfManager.incrementPlayerCommands(5);
+                System.out.println("🌀 Jogador ganhou 5 movimentos extras!");
+            } else {
+                ctfManager.incrementEnemyCommands(5);
+                System.out.println("🤖 IA ganhou 5 movimentos extras!");
+            }
+        }
+    
     }
 
     @Override

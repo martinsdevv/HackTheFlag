@@ -2,13 +2,16 @@ package com.bytecrash.terminal.commands;
 
 import com.bytecrash.filesystem.Directory;
 import com.bytecrash.filesystem.FileSystem;
+import com.bytecrash.game.CTFManager;
 import com.bytecrash.terminal.Command;
 
 public class MkdirCommand implements Command {
     private FileSystem fileSystem;
+    private final CTFManager ctfManager;
 
-    public MkdirCommand(FileSystem fileSystem) {
+    public MkdirCommand(FileSystem fileSystem, CTFManager ctfManager) {
         this.fileSystem = fileSystem;
+        this.ctfManager = ctfManager;
     }
 
     @Override
@@ -19,7 +22,9 @@ public class MkdirCommand implements Command {
 
         Directory newDir = new Directory(argument, fileSystem.getCurrentDirectory());
         fileSystem.getCurrentDirectory().addDirectory(newDir);
-        fileSystem.createPhysicalDirectory(newDir);
+        FileSystem currentFileSystem = ctfManager.getCurrentFileSystem();
+        currentFileSystem.createPhysicalDirectory(newDir);
+
         return "Diretório '" + argument + "' criado com sucesso.";
     }
 
