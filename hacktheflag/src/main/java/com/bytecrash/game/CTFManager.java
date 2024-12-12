@@ -26,14 +26,14 @@ public class CTFManager {
     private int playerTurns = 0;
     private int enemyTurns = 0;
     private int enemyMaxCommands = 5;
-    private int playerMaxCommands = 5;
+    private int playerMaxCommands = 7;
 
     private final MainGame mainGame;
 
     private int playerCommands = 0;
     private int enemyCommands = 0;
 
-    LlamaAPI llamaAPI = new LlamaAPI("http://localhost:1234/v1/chat/completions");
+    LlamaAPI llamaAPI = new LlamaAPI("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");
 
     public CTFManager(FileSystem playerFileSystem, Stage stage, MainGame mainGame) {
         this.playerFileSystem = playerFileSystem;
@@ -46,7 +46,7 @@ public class CTFManager {
 
     public void startSetupPhase() {
         setupPhase = true;
-        isPlayerTurn = true; 
+        isPlayerTurn = true;
         System.out.println("Fase de configuração iniciada.");
     }
 

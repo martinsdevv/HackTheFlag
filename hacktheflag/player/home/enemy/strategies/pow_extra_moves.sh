@@ -1,0 +1,1 @@
+Este script concede 5 movimentos extras!

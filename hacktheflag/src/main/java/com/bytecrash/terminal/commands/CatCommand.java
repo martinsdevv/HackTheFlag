@@ -31,13 +31,31 @@ public class CatCommand implements FileSystemAwareCommand {
         }
 
         if (file.getName().endsWith(".flag")) {
-            String winner = ctfManager.isPlayerTurn() ? "Jogador" : "IA";
-            ctfManager.endGameWithFlag(file.getName(), winner);
-            return "🏳️ Bandeira encontrada: " + file.getName();
+            // Verificar qual flag foi encontrada
+            if (file.getName().equals("player.flag")) {
+                if (!ctfManager.isPlayerTurn()) {
+                    // IA encontrou a bandeira do jogador
+                    ctfManager.endGameWithFlag(file.getName(), "IA");
+                    return "🏳️ Bandeira encontrada: player.flag";
+                } else {
+                    // Jogador visualizou sua própria bandeira
+                    return "📄 Conteúdo da bandeira: " + file.getContent();
+                }
+            } else if (file.getName().equals("machine.flag")) {
+                if (ctfManager.isPlayerTurn()) {
+                    // Jogador encontrou a bandeira da IA
+                    ctfManager.endGameWithFlag(file.getName(), "Jogador");
+                    return "🏳️ Bandeira encontrada: machine.flag";
+                } else {
+                    // IA visualizou sua própria bandeira
+                    return "📄 Conteúdo da bandeira: " + file.getContent();
+                }
+            }
         }
 
         return file.getContent();
     }
+
 
     private void activatePower(com.bytecrash.filesystem.File powerFile) {
         String powerName = powerFile.getName();
